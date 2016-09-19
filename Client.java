@@ -1,7 +1,7 @@
 /**
  * Assignment #1
  * SYSC 3303
- * Andrew Ward
+ * Andrew Ward (is funny looking)
  * 100898624
  * September 2016
  * 

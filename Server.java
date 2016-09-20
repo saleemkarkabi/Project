@@ -1,9 +1,9 @@
 /**
- * Assignment 1
+ * Project Server class
  * SYSC 3303 
- * Andrew Ward
- * 100898624
- * September 2016
+ * Andrew Ward, Alex Hoecht, Connor Emery, Robert Graham, Saleem Karkabi
+ * 100898624,   100933730,   100980809,    100981086,     100944655
+ * Fall Semester 2016
  * 
  * Server Class
  */
@@ -14,16 +14,16 @@ import java.util.Arrays;
 
 public class Server 
 {
-
-	private DatagramSocket sendSocket,receiveSocket;
-	private DatagramPacket sendPacket,receivePacket;
+	//Instance Variables 
+	private DatagramSocket sendSocket, receiveSocket;
+	private DatagramPacket sendPacket, receivePacket;
 	
 	public Server()
 	{
 		try
 		{
 			receiveSocket = new DatagramSocket(69);	
-			// DatagramSocket to use to receive(port 69)
+			// DatagramSocket created to receive(port 69)
 			
 		}
 		catch(SocketException se)
@@ -32,16 +32,26 @@ public class Server
 			System.exit(1);
 		}
 	}
+	
 	/**
-	 * Algorithm for Server
+	 * Algorithm for Server:
+	 * 
+	 * 
+	 * 
+	 * 
+	 * 
+	 * 
+	 * 
 	 */
 	public void serverAlgorithm()
 	{
 		while(true)
 		{
+			//byte arrays created to pack and unpacked data
 			byte[] msg = new byte[50];
 			byte[] data = new byte[4];
 			
+			//The packet that is received from the client
 			receivePacket = new DatagramPacket(msg,msg.length);
 			System.out.println("Server is waiting for a packet");
 			
@@ -49,16 +59,18 @@ public class Server
 			{
 				System.out.println("Waiting.....\n");
 				
+				//Slow the program down to simulate wait time
 				try
 				{
 					Thread.sleep(5000);
 				}
-				
 				catch(InterruptedException e)
 				{
 					e.printStackTrace();
 					System.exit(1);
 				}
+				
+				//Receive the packet
 				receiveSocket.receive(receivePacket);
 			}
 			catch(IOException e)
@@ -74,16 +86,19 @@ public class Server
 			
 			try
 			{
+				//Invalid request receive
 				if(msg[1] == 0)
 				{
 					throw new NoSuchFieldException();
 				}
+				//Read request receive
 				if (msg[1] == 1)
 				{
 					request = "Read";
 					data[1] = 3;
 					data[3] = 1;
 				}
+				//Write request receive
 				if(msg[1] == 2)
 				{
 					request = "Write";

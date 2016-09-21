@@ -35,12 +35,16 @@ public class Server
 	
 	/**
 	 * Algorithm for Server:
-	 * 
-	 * 
-	 * 
-	 * 
-	 * 
-	 * 
+	 * Repeat forever
+	 * 	Wait to receive a request from the server.
+	 * 	The request will be deturmined to be either read or write.
+	 * 	The format of the packet is parsed to insure valid data was received.
+	 * 	The information contained in the packet is printed to the console.
+	 * 	If the request is a read, send back the message 0301
+	 * 	If the request is a write, send back the message 0400	 * 
+	 * 	The message being sent back to the client it printed to the console.
+	 * 	A socket is created to send the new packet.
+	 * 	Close the socket
 	 * 
 	 */
 	public void serverAlgorithm()
@@ -125,10 +129,12 @@ public class Server
 					count++;
 					if (count == 1)
 					{
+						// get the file name
 						file = Arrays.copyOfRange(msg, 2, i);
 					}
 					if(count == 2)
 					{
+						// get the mode
 						mode = Arrays.copyOfRange(msg, 3 + file.length, i);
 						break;
 					}
@@ -150,7 +156,7 @@ public class Server
 			msgBytes = Arrays.copyOfRange(msg, 0, len);
 			System.out.println("Information as Bytes: "+ Arrays.toString(msgBytes) + "\n");
 			
-			
+			//Creating the new packet to be sent back to the Client
 			sendPacket = new DatagramPacket(data,data.length,
 					receivePacket.getAddress(),receivePacket.getPort());
 			
@@ -165,7 +171,7 @@ public class Server
 				System.out.print(" " + data[k]);
 			}
 			
-			System.out.println("\n");
+			System.out.println();
 			
 			try{
 				sendSocket = new DatagramSocket();

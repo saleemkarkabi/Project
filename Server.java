@@ -1,20 +1,23 @@
 /**
  * Project Server class
- * SYSC 3303 
+ * SYSC 3303 L2
  * Andrew Ward, Alex Hoecht, Connor Emery, Robert Graham, Saleem Karkabi
  * 100898624,   100933730,   100980809,    100981086,     100944655
  * Fall Semester 2016
  * 
  * Server Class
  */
+ 
 import java.io.IOException;
 import java.net.*;
 import java.util.Arrays;
 
-
+/**
+ * Receives a datagram packet from a client and, if it contains the proper format, responds with an acknowledgement or "data".
+ */
 public class Server 
 {
-	//Instance Variables 
+	// Instance Variables 
 	private DatagramSocket sendSocket, receiveSocket;
 	private DatagramPacket sendPacket, receivePacket;
 	
@@ -22,9 +25,8 @@ public class Server
 	{
 		try
 		{
+			// Datagram socket to receive UDP packets
 			receiveSocket = new DatagramSocket(69);	
-			// DatagramSocket created to receive(port 69)
-			
 		}
 		catch(SocketException se)
 		{
@@ -36,34 +38,38 @@ public class Server
 	/**
 	 * Algorithm for Server:
 	 * Repeat forever
-	 * 	Wait to receive a request from the server.
-	 * 	The request will be deturmined to be either read or write.
-	 * 	The format of the packet is parsed to insure valid data was received.
-	 * 	The information contained in the packet is printed to the console.
+	 * 	Wait to receive a request from the server
+	 * 	The request will be determined to be either read or write
+	 * 	The format of the packet is parsed to insure valid data was received
+	 * 	The information contained in the packet is printed to the console
 	 * 	If the request is a read, send back the message 0301
-	 * 	If the request is a write, send back the message 0400	 * 
-	 * 	The message being sent back to the client it printed to the console.
-	 * 	A socket is created to send the new packet.
+	 * 	If the request is a write, send back the message 0400
+	 * 	The message being sent back to the client it printed to the console
+	 * 	A socket is created to send the new packet
 	 * 	Close the socket
-	 * 
 	 */
 	public void serverAlgorithm()
 	{
 		while(true)
 		{
-			//byte arrays created to pack and unpacked data
-			byte[] msg = new byte[50];
-			byte[] data = new byte[4];
+			// Byte array to contain client request
+			byte[] request = new byte[50];
+			// Byte array to respond to request
+			byte[] response = new byte[4];
+			// Packet to be received from client
+			receivePacket = new DatagramPacket(request, request.length);
 			
-			//The packet that is received from the client
-			receivePacket = new DatagramPacket(msg,msg.length);
+			/*
+			 * Attempt to receive a packet from the client
+			 */
+			
 			System.out.println("Server is waiting for a packet");
 			
 			try
 			{
-				System.out.println("Waiting.....\n");
+				System.out.println("Waiting...\n");
 				
-				//Slow the program down to simulate wait time
+				// Slow the program down to simulate wait time
 				try
 				{
 					Thread.sleep(5000);
@@ -74,7 +80,7 @@ public class Server
 					System.exit(1);
 				}
 				
-				//Receive the packet
+				// Receive the packet
 				receiveSocket.receive(receivePacket);
 			}
 			catch(IOException e)
@@ -86,94 +92,128 @@ public class Server
 		
 			System.out.println("Server has received a packet");
 			
-			String request = "";
+			/*
+			 * Parse opcode for validity and determine type
+			 */
+			
+			// Read or write
+			String requestType = "";
 			
 			try
 			{
-				//Invalid request receive
-				if(msg[1] == 0)
+				// Read request
+				if (request[0] == 0 && request[1] == 1)
+				{
+					requestType = "Read";
+					response[1] = 3;
+					response[3] = 1;
+				}
+				// Write request receive
+				else if(request[0] == 0 && request[1] == 2)
+				{
+					requestType = "Write";
+					response[1] = 4;
+				}
+				// Invalid request
+				else
 				{
 					throw new NoSuchFieldException();
 				}
-				//Read request receive
-				if (msg[1] == 1)
-				{
-					request = "Read";
-					data[1] = 3;
-					data[3] = 1;
-				}
-				//Write request receive
-				if(msg[1] == 2)
-				{
-					request = "Write";
-					data[1] = 4;
-				}
 			}
-			
 			catch(NoSuchFieldException e)
 			{
-				System.out.println("Invalid Request..... Quitting");
+				System.out.println("Invalid request... Quitting");
 				System.exit(1);
 			}
 			
-			//Parsing the packet received
-			System.out.println(request + " Request received");
-			byte[] file = new byte[1];
-			byte[] mode = new byte[1];
-			byte[] msgBytes = new byte[1];
+			System.out.println(requestType + " request received");
+			
+			/*
+			 * Parse received packet for proper format and extract file name and transfer mode
+			 */
+			 
+			// File name
+			byte[] file = new byte[0];
+			// Transfer mode
+			byte[] mode = new byte[0];
+			byte[] msgBytes = new byte[0];
+			Boolean isValidRequest = false;
+			// Amount of zero bytes in the request
 			int count = 0;
-			for(int i = 2; i < msg.length; i++)
+			for(int i = 2; i < request.length; i++)
 			{				
-				if(msg[i] == 0)
+				if(request[i] == 0)
 				{
+					// Extract data
 					count++;
 					if (count == 1)
 					{
-						// get the file name
-						file = Arrays.copyOfRange(msg, 2, i);
+						file = Arrays.copyOfRange(request, 2, i);
 					}
 					if(count == 2)
 					{
-						// get the mode
-						mode = Arrays.copyOfRange(msg, 3 + file.length, i);
+						mode = Arrays.copyOfRange(request, 3 + file.length, i);
+						isValidRequest = true;
 						break;
 					}
 				}	
 			}
-			//Printing the information of the received packet
-			String fileName = new String(file);
-			System.out.println("File Name: " + fileName);
 			
-			String mode2 = new String(mode);
-			System.out.println("Mode: " + mode2);
+			try
+			{
+				if(!isValidRequest)
+				{
+					throw new NoSuchFieldException();
+				}
+			}
+			catch(NoSuchFieldException e)
+			{
+				System.out.println("Invalid request... Quitting");
+				System.exit(1);
+			}
+			
+			/*
+			 * Print received packet information
+			 */
+			
+			String fileStr = new String(file);
+			System.out.println("File Name: " + fileStr);
+			
+			String modeStr = new String(mode);
+			System.out.println("Mode: " + modeStr);
 			
 			int len = file.length + mode.length + 4;
 			System.out.println("Length: " + len);
 			
-			String infoString = new String(msg,0,fileName.length() + mode2.length() + 4);
-			System.out.println("Information as String: " + infoString);
+			String infoStr = new String(request, 0, fileStr.length() + modeStr.length() + 4);
+			System.out.println("Information as String: " + infoStr);
 
-			msgBytes = Arrays.copyOfRange(msg, 0, len);
-			System.out.println("Information as Bytes: "+ Arrays.toString(msgBytes) + "\n");
+			String requestStr = Arrays.toString(Arrays.copyOfRange(request, 0, len));
+			System.out.println("Information as Bytes: "+ requestStr + "\n");
 			
-			//Creating the new packet to be sent back to the Client
-			sendPacket = new DatagramPacket(data,data.length,
-					receivePacket.getAddress(),receivePacket.getPort());
+			// Create response packet to be sent back to client
+			sendPacket = new DatagramPacket(response, response.length, receivePacket.getAddress(), receivePacket.getPort());
 			
-			//Printing out the information of the packet being sent
-			System.out.println("Server sent packet");
+			/*
+			 * Print sent packet information
+			 */
+			 
+			System.out.println("Server has sent packet");
 			System.out.println("To Host: " + sendPacket.getAddress());
 			System.out.println("Destination host port: " + sendPacket.getPort());
 			System.out.print("Response Packet: ");
-			
-			for(int k = 0; k<data.length;k++)
+			for(int k = 0; k < response.length; k++)
 			{
-				System.out.print(" " + data[k]);
+				System.out.print(" " + response[k]);
 			}
-			
 			System.out.println();
 			
-			try{
+			/*
+			 * Attempt to send response data to client
+			 */
+			
+			try
+			{
 				sendSocket = new DatagramSocket();
 			}
 			catch(SocketException se)
@@ -182,7 +222,8 @@ public class Server
 				System.exit(1);
 			}
 			
-		    try {
+		    try
+		    {
 		        sendSocket.send(sendPacket);
 		    }
 		    catch(IOException e)

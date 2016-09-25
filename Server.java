@@ -8,7 +8,7 @@
  * Server Class
  */
  
-import java.io.IOException;
+import java.io.*;
 import java.net.*;
 import java.util.Arrays;
 
@@ -20,6 +20,7 @@ public class Server
 	// Instance Variables 
 	private DatagramSocket sendSocket, receiveSocket;
 	private DatagramPacket sendPacket, receivePacket;
+	private File serverDir;
 	
 	public Server()
 	{
@@ -32,6 +33,22 @@ public class Server
 		{
 			se.printStackTrace();
 			System.exit(1);
+		}
+		
+		// File directory to store any received files
+		serverDir = new File("Server Directory");
+		// If the directory doesnt already exist, create it
+		if(!serverDir.exists())
+		{
+			try
+			{
+				//If the directory is successfully created
+				serverDir.mkdir();
+			}
+			catch(SecurityException se)
+			{
+				System.exit(1);
+			}
 		}
 	}
 	
@@ -172,6 +189,30 @@ public class Server
 				System.exit(1);
 			}
 			
+			// Convert the received file name back into a string
+			String fileName = new String(file);
+			// Create the file to be added to the directory
+			File receivedFile = new File(serverDir,fileName);
+			if(!receivedFile.exists())
+			{
+				boolean fileAdded = false;
+				try
+				{
+					// Create if the file doesn't already exist
+					receivedFile.createNewFile();
+					fileAdded = true;
+				} 
+				catch (IOException e) 
+				{
+					e.printStackTrace();
+					System.exit(1);
+				}
+				if(fileAdded)
+				{
+					System.out.println("Received file successfully added to the server directory.");
+				}
+			}
+			
 			/*
 			 * Print received packet information
 			 */
@@ -232,6 +273,25 @@ public class Server
 		        System.exit(1);
 		    }	
 		    sendSocket.close();
+		}
+	}
+	
+	public void printServerDir()
+	{
+		int count = 1;
+		// Retrieve files in the directory
+		File[] tempList = serverDir.listFiles();
+		
+		System.out.println("The Server directory now contains: ");
+		
+		// Print and number each file
+		for(File f : tempList)
+		{
+			if(f.isFile())
+			{
+				System.out.println(count + ". " + f.getName());
+				count++;
+			}
 		}
 	}
 	

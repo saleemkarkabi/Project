@@ -110,7 +110,8 @@ public class Server
 			System.out.println("Server has received a packet");
 			
 			/*
-			 * Parse opcode for validity and determine type
+			 * IMPLEMENT THE DATA AND ACK PACKET FORMATION HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+			 * 
 			 */
 			
 			// Read or write

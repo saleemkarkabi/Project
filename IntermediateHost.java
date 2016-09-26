@@ -1,20 +1,24 @@
 /**
- * Assignment #1
- * SYSC 3303 
- * Andrew Ward
- * 100898624
- * September 2016
+ * Project ErrorSimulator class
+ * SYSC 3303 L2
+ * Andrew Ward, Alex Hoecht, Connor Emery, Robert Graham, Saleem Karkabi
+ * 100898624,   100933730,   100980809,    100981086,     100944655
+ * Fall Semester 2016
  * 
- * Intermediate Host Class
+ * ErrorSimulator Class
  */
 
 import java.io.IOException;
 import java.net.*;
 import java.util.Arrays;
 
-public class IntermediateHost 
+/**
+* DONT FORGET TO COMMENT HERE 
+**/
+
+public class ErrorSimulator 
 {
-	
+	//Instance Variables
 	private DatagramSocket sendSocket, receiveSocket, sendReceiveSocket;
 	private DatagramPacket sendPacketServer, sendPacketClient, receivePacketServer, receivePacketClient;
 	
@@ -22,6 +26,7 @@ public class IntermediateHost
 	{
 		try
 		{
+			// Datagram socket to send and receive UDP packets
 			receiveSocket = new DatagramSocket(23);
 			sendReceiveSocket = new DatagramSocket();
 		}
@@ -32,25 +37,32 @@ public class IntermediateHost
 		}
 	}
 	/**
-	 *Algorithm for Intermediate Host
+	 * Algorithm for Intermediate Host:
+	 * Repeat forever
+	 *
 	 */
-	public void intermediateHostAlgorithm()
+	public void ErrorSimulatorAlgorithm()
 	{
 		String request = "";
 		while(true)
 		{
+			// Byte array to contain client request
 			byte[] message = new byte[50];
+			// Byte array to respond to request
 			byte[] data = new byte[4];
 			
-			//Receive Packet
+			//Packet to be received from client 
 			int msglength = message.length;
 			receivePacketClient = new DatagramPacket(message,msglength);
 			System.out.println("Intermediate Host waiting for packet");
 			
-			//Packet from Client
+			/*
+			* Waiting on packet from client 
+			*/
 			try
 			{
 				System.out.println("Waiting on Packet");
+				//Receive the packet
 				receiveSocket.receive(receivePacketClient);
 			}			
 			catch(IOException e)
@@ -61,6 +73,7 @@ public class IntermediateHost
 			
 			System.out.println("Intermediate Host has received a packet");
 			
+			// Determine request
 			if(message[1] == 0)
 			{
 				request = "Invalid";
@@ -75,12 +88,15 @@ public class IntermediateHost
 			}
 			
 			System.out.println(request + " Request received");
+			
 			String fileName = "";
 			String mode2 = "";
 			String Stringinfo = "";
 			byte[] Bytesinfo = new byte[2];
 			
-			//Parsing
+			/*
+			*Parse opcode 
+			*/
 			if(!request.equals("Invalid"))
 			{
 				byte[] file = new byte[1];
@@ -116,7 +132,7 @@ public class IntermediateHost
 				System.out.println("Information as Bytes: "+ Arrays.toString(Bytesinfo) + "\n");
 			}
 			
-			//Send Packet
+			//Sending packet to server
 			try
 			{
 				sendPacketServer = new DatagramPacket(message,message.length,
@@ -132,6 +148,7 @@ public class IntermediateHost
 			System.out.println("Intermediate Host is sending a packet");
 			System.out.println("Sending " + request + " Request");
 			
+			//Sending packet information 
 			if(!request.equals("Invalid"))
 			{
 				System.out.println("File Name: " + fileName);
@@ -167,7 +184,7 @@ public class IntermediateHost
 				System.exit(1);
 			}
 			
-			//Print Receive
+			//Print Received packet 
 			System.out.println("Intermediate Host received a packet");
 			System.out.println("From Server " + receivePacketServer.getAddress());
 			System.out.println("With port: " + receivePacketServer.getPort());
@@ -227,8 +244,8 @@ public class IntermediateHost
 	
 	public static void main(String args[])
 	{
-		IntermediateHost i = new IntermediateHost();
-		i.intermediateHostAlgorithm();
+		ErrorSimulator errorsimulator = new ErrorSimulator();
+		errorsimulator.ErrorSimulator();
 	}
 }
 

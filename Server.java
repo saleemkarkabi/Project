@@ -118,14 +118,14 @@ public class Server
 			
 			try
 			{
-				// Read request
+				// DATA packet formed if READ
 				if (request[0] == 0 && request[1] == 1)
 				{
 					requestType = "Read";
 					response[1] = 3;
 					response[3] = 1;
 				}
-				// Write request receive
+				// ACK packet formed if WRITE
 				else if(request[0] == 0 && request[1] == 2)
 				{
 					requestType = "Write";

@@ -1,7 +1,8 @@
-SYSC 3303 Assignment 1
-Andrew Ward
-100898624
-September 16
+Iteration #1
+SYSC 3303 L2
+Andrew Ward, Alex Hoecht, Connor Emery, Robert Graham, Saleem Karkabi
+100898624,   100933730,   100980809,    100981086,     100944655
+Fall Semester 2016
 
 Contains the following files:
 Client.java - Read/Write/Invalid requests
@@ -18,5 +19,19 @@ How to Run the project
 3. Compile and Run the Client.java file 
 4. Observe the program as it executes 
 
+Project Responsibilities
 
-
+Andrew Ward:
+  Assignment #1, UCM Diagram for entire System, UML Diagrams for each Class, Error Simulator Class
+  
+Alex Hoecht:
+  Server Class
+  
+Connor Emery:
+  Client Class
+  
+Robert Graham:
+  Server CLass
+  
+Salem Karkabi:
+  Client Class

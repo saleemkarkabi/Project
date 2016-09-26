@@ -25,13 +25,13 @@ Andrew Ward:
   Assignment #1, UCM Diagram for entire System, UML Diagrams for each Class, Error Simulator Class
   
 Alex Hoecht:
-  Server Class
+  Server Class - adding comments, implementing a directory, and handeling different data packets.
   
 Connor Emery:
   Client Class
   
 Robert Graham:
-  Server CLass
+  Server CLass - adding comments, implementing a "nice" way to kill the thread.
   
 Salem Karkabi:
   Client Class

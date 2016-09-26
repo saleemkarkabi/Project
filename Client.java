@@ -1,15 +1,6 @@
-/**
- * Assignment #1
- * SYSC 3303
- * Andrew Ward (is funny looking)
- * 100898624
- * September 2016
- * 
- * Client Class
- */
-import java.io.IOException;
 import java.net.*;
 import java.util.Arrays;
+import java.io.*;
 
 
 
@@ -37,13 +28,27 @@ public class Client
 		fileName = "test.txt";
 		mode = "ocTEt".toLowerCase();
 		
+		byte[] data = new byte[4];
+		receivePacket = new DatagramPacket(data,data.length);
 	}
 	/**
 	 * Algorithm for Client 
+	 * @return 
 	 */
+	public void createPack(byte[] packet){
+		try{
+			sendPacket = new DatagramPacket(packet,packet.length,InetAddress.getLocalHost(),23);
+		}
+		catch(UnknownHostException e){
+			e.printStackTrace();
+			System.exit(1);
+		}
+    	
+	}
 
 	public void ClientAlgorithm()
 	{
+		
 		String request;
 		
 		for(int i = 0; i < 11; i++)
@@ -70,6 +75,19 @@ public class Client
 			byte[] fileNameToBytes = fileName.getBytes();
 			int os1 = fileNameToBytes.length;
 			
+			try{
+				File file = new File(fileName);
+				
+				if(file.createNewFile()){
+					System.out.println("File is created");
+				}else{
+					System.out.println("File already exists.");
+				}
+				
+			}catch (IOException e){
+				e.printStackTrace();
+			}
+			
 			System.arraycopy(fileNameToBytes, 0, message, 2, os1);
 			message[os1 + 2] = 0;
 			
@@ -91,7 +109,14 @@ public class Client
 				System.exit(1);
 			}
 			
+			
+			
+			send(sendPacket);
+			
+			
+			
 			//Send Packet info
+			
 			
 			System.out.println("Sending: " + request + " Request");
 			System.out.println("Host: " + sendPacket.getAddress());
@@ -105,25 +130,9 @@ public class Client
 			System.out.println("String : " + info);
 			System.out.println("Bytes : " + Arrays.toString(message));
 			
-			
-			//sending packet
-			
-			try
-			{
-				sendReceiveSocket.send(sendPacket);
-			}
-			catch(IOException e)
-			{
-				e.printStackTrace();
-				System.exit(1);
-			}
-			
-			System.out.println("Client has sent packet\n");
-			
 			// receive packet
 			
-			byte[] data = new byte[4];
-			receivePacket = new DatagramPacket(data,data.length);
+			
 			
 			try
 			{
@@ -143,18 +152,145 @@ public class Client
 			System.out.println("Length: " + length2);
 			System.out.println("Packet: ");
 			
-			for(int k = 0; k<data.length;k++)
+			for(int k = 0; k<receivePacket.getData().length;k++)
 			{
-				System.out.print(" " + data[k]);
+				System.out.print(" " + receivePacket.getData()[k]);
+			}
+			
+			byte[] compWrite = new byte[] {0,3,0,1};
+			
+			if(receivePacket.getData() == compWrite){
+				System.out.println("files match");
+				
 			}
 		}
 		
 	}
+	public void send(DatagramPacket sendPacket){
+		
+		try{
+			sendReceiveSocket.send(sendPacket);
+		}
+		catch(IOException e){
+			e.printStackTrace();
+			System.exit(1);
+		}
+		System.out.println("Client has sent packet\n");
+		
+	}
+	public void receive (){
+		try
+		{
+			sendReceiveSocket.receive(receivePacket);
+		}
+		catch(IOException e)
+		{
+			e.printStackTrace();
+			System.exit(1);
+		}
+		
+	}
+	
+    public void sendData(String name)
+    	throws FileNotFoundException, IOException
+        {
+    		int packNum = 0;
+        	BufferedInputStream in = new BufferedInputStream(new FileInputStream("test.txt"));
+        	//bytes from file
+            byte[] fdata = new byte[512];
+            //op code and block # + fdata
+            byte[] pack = new byte[516];
+            // used for cycling through file
+            int n;
+            // a and b used for printing packet number without negatives
+            int a;
+            int b;
+            // data requests are op code 0 3
+            pack[0] = 0;
+            pack[1] = 3; 
+            // while loop cycles through data in file 512 bytes at a time
+            while ((n = in.read(fdata)) != -1) {
+            	//setting bytes for packet number converting from int to 2 bytes
+            	pack[3] = (byte) (packNum & 0xFF);
+            	pack[2] = (byte) ((packNum >> 8) & 0xFF); 
+            	packNum ++;
+          // if end of data from file is null then the remaining part of the file was under 512 bytes
+            	if (fdata[511] == 0x00){
+            		// resized array to match the remaining bytes in file (from 512 to < 512)
+            	    byte[] lastData = resize(fdata);
+            	    System.out.println(lastData[3]);
+            		System.out.println("data not 512 bytes");
+            		System.out.println("Size of this is array is: " + lastData.length);
+            		// copies file data behind opcode and packet number
+            		System.arraycopy(lastData, 0, pack, 4, lastData.length);
+            		// resizes final array from 516 to 4 + remaining data from file
+            		byte[] lastPack = resize(pack);
+            		// creates final packet
+            		createPack(lastPack);
+            		 a = lastPack[2];
+                	 b = lastPack[3];
+                	a &= 0xFF;
+                	b &= 0xFF;
+                	System.out.println(lastPack[4]);
+            	}
+            	else{
+            	// if file is sending 512 bytes for data
+            	System.arraycopy(fdata, 0, pack, 4, fdata.length);
+            	createPack(fdata);
+            	
+            	 a = pack[2];
+            	 b = pack[3];
+            	a &= 0xFF;
+            	b &= 0xFF;
+            	}
+            	System.out.println(a + ", " + b);
+
+            	
+            	
+            	send(sendPacket);
+            	re(fdata);
+            	//receive();
+            	
+            }
+
+            in.close();
+        }
+		// wipes array replacing all elements with null
+    public byte [] re (byte[] data){
+    	for (int i = 0; i < data.length; i++){
+    		data[i] = 0x00;
+    	}
+    	return data;
+    }
+    // resizes arrays to remove null at the end
+    public byte[] resize (byte[] data){
+    	int i;
+    	for(i = 4; i < data.length; i++){
+    		if(data[i] == 0x00){
+    			break;
+    			
+    		}
+    	}
+    	
+    	data = Arrays.copyOf(data, i+1);
+    	
+    	return data;
+    }
+    
 	public static void main(String[] args) 
 	{
+
 		Client c = new Client();
-		c.ClientAlgorithm();
+		//c.ClientAlgorithm();
+		try {
+			c.sendData("test.txt");
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
 	}
-
 }

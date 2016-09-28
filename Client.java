@@ -1,12 +1,3 @@
-/**
- * Project Client class
- * SYSC 3303 L2
- * Andrew Ward, Alex Hoecht, Connor Emery, Robert Graham, Saleem Karkabi
- * 100898624,   100933730,   100980809,    100981086,     100944655
- * Fall Semester 2016
- * 
- * Client Class
- */
 import java.net.*;
 import java.util.Arrays;
 import java.io.*;
@@ -42,16 +33,13 @@ public class Client
 	}
 	/**
 	 * Algorithm for Client 
-	 * 
+	 * @return 
 	 */
-	public void createPack(byte[] packet)
-	{
-		try
-		{
+	public void createPack(byte[] packet){
+		try{
 			sendPacket = new DatagramPacket(packet,packet.length,InetAddress.getLocalHost(),23);
 		}
-		catch(UnknownHostException e)
-		{
+		catch(UnknownHostException e){
 			e.printStackTrace();
 			System.exit(1);
 		}
@@ -87,22 +75,16 @@ public class Client
 			byte[] fileNameToBytes = fileName.getBytes();
 			int os1 = fileNameToBytes.length;
 			
-			try
-			{
+			try{
 				File file = new File(fileName);
 				
-				if(file.createNewFile())
-				{
+				if(file.createNewFile()){
 					System.out.println("File is created");
-				}
-				else
-				{
+				}else{
 					System.out.println("File already exists.");
 				}
 				
-			}
-			catch (IOException e)
-			{
+			}catch (IOException e){
 				e.printStackTrace();
 			}
 			
@@ -177,23 +159,19 @@ public class Client
 			
 			byte[] compWrite = new byte[] {0,3,0,1};
 			
-			if(receivePacket.getData() == compWrite)
-			{
+			if(receivePacket.getData() == compWrite){
 				System.out.println("files match");
 				
 			}
 		}
 		
 	}
-	public void send(DatagramPacket sendPacket)
-	{
+	public void send(DatagramPacket sendPacket){
 		
-		try
-		{
+		try{
 			sendReceiveSocket.send(sendPacket);
 		}
-		catch(IOException e)
-		{
+		catch(IOException e){
 			e.printStackTrace();
 			System.exit(1);
 		}
@@ -201,7 +179,7 @@ public class Client
 		
 	}
 	public void receive ()
-	{
+	{    //wait for packet
 		try
 		{
 			sendReceiveSocket.receive(receivePacket);
@@ -211,106 +189,127 @@ public class Client
 			e.printStackTrace();
 			System.exit(1);
 		}
+		// check if data pack
+		if (receivePacket.getData()[1] == 0x03)
+		{
+			System.out.println("Data packet Received");
+		}
+		// check if ACK
+		else if (receivePacket.getData()[1] == 0x04)
+		{
+			int val = (receivePacket.getData()[2] & 0xff) << 8 | receivePacket.getData()[3] & 0xff;
+			System.out.println("Server has acknowledged packet " + val );
+		}
 		
 	}
 	
     public void sendData(String name)
     	throws FileNotFoundException, IOException
         {
-    	    int packNum = 0;
-            BufferedInputStream in = new BufferedInputStream(new FileInputStream("test.txt"));
-		
-            //bytes from file
+    	// determines if final packet to be sent has 0 data bytes (ie file was multiple of 512 bytes in length)
+    		boolean isLastZero = true;
+    		int packNum = 0;
+        	BufferedInputStream in = new BufferedInputStream(new FileInputStream("test.txt"));
+        	
+        	//bytes from file
             byte[] fdata = new byte[512];
-		
+            
             //op code and block # + fdata
             byte[] pack = new byte[516];
-		
+            
             // used for cycling through file
             int n;
-		
+            
             // a and b used for printing packet number without negatives
             int a;
             int b;
-		
+            
             // data requests are op code 0 3
             pack[0] = 0;
             pack[1] = 3; 
-		
+            
             // while loop cycles through data in file 512 bytes at a time
-            while ((n = in.read(fdata)) != -1)
-	    {
+            while ((n = in.read(fdata)) != -1) {
             	//setting bytes for packet number converting from int to 2 bytes
             	pack[3] = (byte) (packNum & 0xFF);
             	pack[2] = (byte) ((packNum >> 8) & 0xFF); 
             	packNum ++;
-		    
+            	
           // if end of data from file is null then the remaining part of the file was under 512 bytes
-            	if (fdata[511] == 0x00)
-		{
-            	        // resized array to match the remaining bytes in file (from 512 to < 512)
-            	        byte[] lastData = resize(fdata);
-            	        System.out.println(lastData[3]);
-			
+            	if (fdata[511] == 0x00){
+            		isLastZero = false;
+            		// resized array to match the remaining bytes in file (from 512 to < 512)
+            	    byte[] lastData = resize(fdata);
+            	    
+            	    System.out.println(lastData[3]);
             		System.out.println("data not 512 bytes");
             		System.out.println("Size of this is array is: " + lastData.length);
-			
-            		// copies file data behind opcode and packet number
+            		
+            		// copies file data behind opcode and packet number		
             		System.arraycopy(lastData, 0, pack, 4, lastData.length);
-			
+            		
             		// resizes final array from 516 to 4 + remaining data from file
             		byte[] lastPack = resize(pack);
-			
+            		
             		// creates final packet
             		createPack(lastPack);
-            		a = lastPack[2];
-                	b = lastPack[3];
+            		
+            		 a = lastPack[2];
+                	 b = lastPack[3];
                 	a &= 0xFF;
                 	b &= 0xFF;
                 	System.out.println(lastPack[4]);
             	}
-            	else
-		{
+            	else{
+            		
             	// if file is sending 512 bytes for data
             	System.arraycopy(fdata, 0, pack, 4, fdata.length);
             	createPack(fdata);
             	
-            	a = pack[2];
-            	b = pack[3];
+            	 a = pack[2];
+            	 b = pack[3];
             	a &= 0xFF;
             	b &= 0xFF;
+            	
             	}
             	System.out.println(a + ", " + b);
 
-            	
-            	
             	send(sendPacket);
+            	
+            	// wipes data array setting all values to null
             	re(fdata);
+            	
             	//receive();
             	
             }
+            if (isLastZero == true)
+            {
+            	    System.out.println("file is empty sending empty packet");
+            		byte[] zeroPack = new byte[4];
+            		zeroPack[0] = 0x00;
+            		zeroPack[1] = 0x03;
+            		zeroPack[3] = (byte) (packNum & 0xFF);
+            		zeroPack[2] = (byte) ((packNum >> 8) & 0xFF); 
+            		createPack(zeroPack);
+            		send(sendPacket);
+            	
+            }
+            
 
             in.close();
         }
-	
-    // wipes array replacing all elements with null
-    public byte [] re (byte[] data)
-    {
-    	for (int i = 0; i < data.length; i++)
-	{
+		// wipes array replacing all elements with null
+    public byte [] re (byte[] data){
+    	for (int i = 0; i < data.length; i++){
     		data[i] = 0x00;
     	}
     	return data;
     }
-	
     // resizes arrays to remove null at the end
-    public byte[] resize (byte[] data)
-    {
+    public byte[] resize (byte[] data){
     	int i;
-    	for(i = 4; i < data.length; i++)
-	{
-    		if(data[i] == 0x00)
-		{
+    	for(i = 4; i < data.length; i++){
+    		if(data[i] == 0x00){
     			break;
     			
     		}
@@ -321,20 +320,17 @@ public class Client
     	return data;
     }
     
-	public static void main(String[] args) 
+	public static void main(String[] args) throws IOException 
 	{
 
 		Client c = new Client();
 		//c.ClientAlgorithm();
-		try 
-		{
+		try {
 			c.sendData("test.txt");
-		} catch (FileNotFoundException e)
-		{
+		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (IOException e)
-		{
+		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}

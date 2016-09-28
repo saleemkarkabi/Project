@@ -207,7 +207,7 @@ public class Client
     	throws FileNotFoundException, IOException
         {
     	// determines if final packet to be sent has 0 data bytes (ie file was multiple of 512 bytes in length)
-    		boolean isLastZero = true;
+    		boolean isLastZero = true;/////////////////////////////////////////////////////
     		int packNum = 0;
         	BufferedInputStream in = new BufferedInputStream(new FileInputStream("test.txt"));
         	
@@ -237,7 +237,7 @@ public class Client
             	
           // if end of data from file is null then the remaining part of the file was under 512 bytes
             	if (fdata[511] == 0x00){
-            		isLastZero = false;
+            		isLastZero = false;/////////////////////////////////////////////////////////////////////////////////////
             		// resized array to match the remaining bytes in file (from 512 to < 512)
             	    byte[] lastData = resize(fdata);
             	    
@@ -282,7 +282,7 @@ public class Client
             	//receive();
             	
             }
-            if (isLastZero == true)
+            if (isLastZero == true)////////////////////////////////////////////////////////////////
             {
             	    System.out.println("file is empty sending empty packet");
             		byte[] zeroPack = new byte[4];
@@ -293,7 +293,7 @@ public class Client
             		createPack(zeroPack);
             		send(sendPacket);
             	
-            }
+            }////////////////////////////////////////////////////////////////////////////////////
             
 
             in.close();

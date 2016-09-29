@@ -104,21 +104,21 @@ public class Server
 			String requestType = "";
 			
 				// DATA packet formed if READ
-				if (request[0] == 0 && request[1] == 1)
+				if (request[1] == 1)
 				{
 					requestType = "Read";
 				}
 				// ACK packet formed if WRITE
-				else if(request[0] == 0 && request[1] == 2)
+				if(request[1] == 2)
 				{
 					requestType = "Write";
 				}
 				// Invalid request
-				else
-				{
-					System.out.println("Invalid request... Quitting");
-					System.exit(1);
-				}
+				//else
+				//{
+					//System.out.println("Invalid request... Quitting");
+					//System.exit(1);
+				//}
 			
 			System.out.println(requestType + " request received");
 			
@@ -209,21 +209,21 @@ public class Server
 			
 			// form the packet to be sent back to the client
 			// DATA packet formed if READ request received
-			if (requestType == "Read")
+			if (requestType.equals("Read"))
 			{
-				sendData(receivedFile);				
+				sendPackData(fileStr);	
 			}
 			// ACK packet formed if WRITE
-			if(requestType == "Write")
+			if(requestType.equals("Write"))
 			{
 				sendAck();
 			}
 			// Invalid request
-			else
-			{
-				System.out.println("Invalid request... Quitting");
-				System.exit(1);
-			}
+			//else
+			//{
+				//System.out.println("Invalid request... Quitting");
+				//System.exit(1);
+			//}
 			/*
 			 * Attempt to send response data to client
 			 */
@@ -256,11 +256,11 @@ public class Server
 		}
 	}
 	
-    public void sendData(File file) throws FileNotFoundException, IOException
+    public void sendPackData(String name) throws FileNotFoundException, IOException
     {
     	int packNum = 0;
     	
-    	FileInputStream is = new FileInputStream(file);
+    	BufferedInputStream in = new BufferedInputStream(new FileInputStream(name));
     		
         //bytes from file
         byte[] fdata = new byte[512];
@@ -280,7 +280,7 @@ public class Server
         pack[1] = 3; 
     		
         // while loop cycles through data in file 512 bytes at a time
-        while ((n = is.read(fdata)) != -1)
+        while ((n = in.read(fdata)) != -1)
         {
         	//setting bytes for packet number converting from int to 2 bytes
             pack[3] = (byte) (packNum & 0xFF);
@@ -304,7 +304,8 @@ public class Server
                 byte[] lastPack = resize(pack);
     			
                 // creates final packet
-                createPack(lastPack);
+                sendPacket = new DatagramPacket(lastPack,lastPack.length,receivePacket.getAddress(), receivePacket.getPort());
+                
                 a = lastPack[2];
                 b = lastPack[3];
                 a &= 0xFF;
@@ -315,7 +316,8 @@ public class Server
     		{
                 // if file is sending 512 bytes for data
                 System.arraycopy(fdata, 0, pack, 4, fdata.length);
-                createPack(fdata);
+                
+                sendPacket = new DatagramPacket(fdata,fdata.length,receivePacket.getAddress(), receivePacket.getPort());
                 	
                 a = pack[2];
                 b = pack[3];
@@ -325,7 +327,7 @@ public class Server
             System.out.println(a + ", " + b);
          	re(fdata);
         }
-        is.close();
+        in.close();
     }
     
     public void sendAck()
@@ -338,7 +340,7 @@ public class Server
     	pack[3] = (byte) (packNum & 0xFF);
         pack[2] = (byte) ((packNum >> 8) & 0xFF);
 
-        createPack(pack);
+        sendPacket = new DatagramPacket(pack,pack.length,receivePacket.getAddress(), receivePacket.getPort());
     }
     	
         // wipes array replacing all elements with null

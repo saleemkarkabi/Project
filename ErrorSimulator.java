@@ -37,7 +37,7 @@ public class ErrorSimulator
 		}
 	}
 	/**
-	 * Algorithm for Intermediate Host:
+	 * Algorithm for Error Simulator:
 	 * Repeat forever
 	 *
 	 */
@@ -54,7 +54,7 @@ public class ErrorSimulator
 			//Packet to be received from client 
 			int msglength = message.length;
 			receivePacketClient = new DatagramPacket(message,msglength);
-			System.out.println("Intermediate Host waiting for packet");
+			System.out.println("Error Simulator waiting for packet");
 			
 			/*
 			* Waiting on packet from client 
@@ -71,7 +71,7 @@ public class ErrorSimulator
 				System.exit(1);
 			}
 			
-			System.out.println("Intermediate Host has received a packet");
+			System.out.println("Error Simulator has received a packet");
 			
 			// Determine request
 			if(message[1] == 0)
@@ -145,7 +145,7 @@ public class ErrorSimulator
 				System.exit(1);
 			}
 			
-			System.out.println("Intermediate Host is sending a packet");
+			System.out.println("Error Simulator is sending a packet");
 			System.out.println("Sending " + request + " Request");
 			
 			//Sending packet information 
@@ -185,7 +185,7 @@ public class ErrorSimulator
 			}
 			
 			//Print Received packet 
-			System.out.println("Intermediate Host received a packet");
+			System.out.println("Error Simulator received a packet");
 			System.out.println("From Server " + receivePacketServer.getAddress());
 			System.out.println("With port: " + receivePacketServer.getPort());
 			
@@ -217,7 +217,7 @@ public class ErrorSimulator
 			}
 			
 			//printing information to be sent to client
-			System.out.println("Intermediate Host sent packet");
+			System.out.println("Error Simulator Host sent packet");
 			System.out.println("To Host: " + sendPacketClient.getAddress());
 			System.out.println("Destination host port: " + sendPacketClient.getPort());
 			System.out.print("Response Packet: ");

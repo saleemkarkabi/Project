@@ -22,7 +22,7 @@ public class ErrorSimulator
 	private DatagramSocket sendSocket, receiveSocket, sendReceiveSocket;
 	private DatagramPacket sendPacketServer, sendPacketClient, receivePacketServer, receivePacketClient;
 	
-	public IntermediateHost()
+	public ErrorSimulator()
 	{
 		try
 		{

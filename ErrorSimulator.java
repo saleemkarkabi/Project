@@ -245,7 +245,7 @@ public class ErrorSimulator
 	public static void main(String args[])
 	{
 		ErrorSimulator errorsimulator = new ErrorSimulator();
-		errorsimulator.ErrorSimulator();
+		errorsimulator.ErrorSimulatorAlgorithm();
 	}
 }
 

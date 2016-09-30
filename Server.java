@@ -21,9 +21,14 @@ public class Server
 	private DatagramSocket sendSocket, receiveSocket;
 	private DatagramPacket sendPacket, receivePacket;
 	private File serverDir;
+	private InputChecker inuptChecker;
+    	private Thread inuptCheckerThread;
 	
 	public Server()
 	{
+		inuptChecker = new InputChecker();
+	    inuptCheckerThread = new Thread(inuptChecker, "Server Input Checker");
+
 		try
 		{
 			// Datagram socket to receive UDP packets
@@ -69,7 +74,8 @@ public class Server
 	 */
 	public void serverAlgorithm() throws FileNotFoundException, IOException
 	{
-		while(true)
+		inuptCheckerThread.start();
+		while(!inuptChecker.kill)
 		{
 			// Byte array to contain client request
 			byte[] request = new byte[512];
@@ -250,8 +256,7 @@ public class Server
 			{
 				System.out.print(" " + response[k]);
 			}
-			System.out.println();
-
+			System.out.println("\nServer killed");
 		    sendSocket.close();
 		}
 	}

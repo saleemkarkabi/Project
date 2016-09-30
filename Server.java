@@ -15,44 +15,55 @@ import java.util.Arrays;
 /**
  * Receives a datagram packet from a client and, if it contains the proper format, responds with an acknowledgement or "data".
  */
-public class Server 
+public class Server implements Runnable 
 {
 	// Instance Variables 
 	private DatagramSocket sendSocket, receiveSocket;
 	private DatagramPacket sendPacket, receivePacket;
 	private File serverDir;
 	private InputChecker inuptChecker;
-    	private Thread inuptCheckerThread;
+    private Thread inuptCheckerThread;
+    
+    private byte[] request = new byte[512];
+    private byte[] response = new byte[4];
+    
+    
 	
-	public Server()
+	public Server(boolean b)
 	{
+		
 		inuptChecker = new InputChecker();
 	    inuptCheckerThread = new Thread(inuptChecker, "Server Input Checker");
 
-		try
-		{
-			// Datagram socket to receive UDP packets
-			receiveSocket = new DatagramSocket(69);	
-		}
-		catch(SocketException se)
-		{
-			se.printStackTrace();
-			System.exit(1);
-		}
-		
-		// File directory to store any received files
-		serverDir = new File("Server Directory");
-		// If the directory doesnt already exist, create it
-		if(!serverDir.exists())
+		if(!b)
 		{
 			try
 			{
-				//If the directory is successfully created
-				serverDir.mkdir();
+				// Datagram socket to receive UDP packets
+				receiveSocket = new DatagramSocket(69);	
 			}
-			catch(SecurityException se)
+			catch(SocketException se)
 			{
+				se.printStackTrace();
 				System.exit(1);
+			}
+		}
+		else
+		{
+			// File directory to store any received files
+			serverDir = new File("Server Directory");
+			// If the directory doesnt already exist, create it
+			if(!serverDir.exists())
+			{
+				try
+				{
+				//If the directory is successfully created
+					serverDir.mkdir();
+				}
+				catch(SecurityException se)
+				{
+					System.exit(1);
+				}
 			}
 		}
 	}
@@ -102,163 +113,15 @@ public class Server
 			}
 			
 			receive();
-		
-			// Once a packet has been received
-			System.out.println("Server has received a packet");
+	
 			
-			// Determine Read or write
-			String requestType = "";
-			
-				// DATA packet formed if READ
-				if (request[1] == 1)
-				{
-					requestType = "Read";
-				}
-				// ACK packet formed if WRITE
-				if(request[1] == 2)
-				{
-					requestType = "Write";
-				}
-				// Invalid request
-				//else
-				//{
-					//System.out.println("Invalid request... Quitting");
-					//System.exit(1);
-				//}
-			
-			System.out.println(requestType + " request received");
-			
-			/*
-			 * Parse received packet for proper format and extract file name and transfer mode
-			 */
-			 
-			// File name
-			byte[] file = new byte[0];
-			// Transfer mode
-			byte[] mode = new byte[0];
-			Boolean isValidRequest = false;
-			// Amount of zero bytes in the request
-			int count = 0;
-			for(int i = 2; i < request.length; i++)
-			{				
-				if(request[i] == 0)
-				{
-					// Extract data
-					count++;
-					if (count == 1)
-					{
-						file = Arrays.copyOfRange(request, 2, i);
-					}
-					if(count == 2)
-					{
-						mode = Arrays.copyOfRange(request, 3 + file.length, i);
-						isValidRequest = true;
-						break;
-					}
-				}	
-			}
-			
-			try
-			{
-				if(!isValidRequest)
-				{
-					throw new NoSuchFieldException();
-				}
-			}
-			catch(NoSuchFieldException e)
-			{
-				System.out.println("Invalid request... Quitting");
-				System.exit(1);
-			}
-			
-			// Convert the received file name back into a string
-			String fileName = new String(file);
-			// Create the file to be added to the directory
-			File receivedFile = new File(serverDir,fileName);
-			if(!receivedFile.exists())
-			{
-				boolean fileAdded = false;
-				try
-				{
-					// Create if the file doesn't already exist
-					receivedFile.createNewFile();
-					fileAdded = true;
-				} 
-				catch (IOException e) 
-				{
-					e.printStackTrace();
-					System.exit(1);
-				}
-				if(fileAdded)
-				{
-					System.out.println("Received file successfully added to the server directory.");
-				}
-			}
-			
-			/*
-			 * Print received packet information
-			 */
-			String fileStr = new String(file);
-			System.out.println("File Name: " + fileStr);
-			
-			String modeStr = new String(mode);
-			System.out.println("Mode: " + modeStr);
-			
-			int len = file.length + mode.length + 4;
-			System.out.println("Length: " + len);
-			
-			String infoStr = new String(request, 0, fileStr.length() + modeStr.length() + 4);
-			System.out.println("Information as String: " + infoStr);
+//////////////////////////////////////////////////////////////////////////
+			new Thread(new Server(true)).start();
+/////////////////////////////////////////////////////////////////////////
 
-			String requestStr = Arrays.toString(Arrays.copyOfRange(request, 0, len));
-			System.out.println("Information as Bytes: "+ requestStr + "\n");
-			
-			// form the packet to be sent back to the client
-			// DATA packet formed if READ request received
-			if (requestType.equals("Read"))
-			{
-				sendPackData(fileStr);	
-			}
-			// ACK packet formed if WRITE
-			if(requestType.equals("Write"))
-			{
-				sendAck();
-			}
-			// Invalid request
-			//else
-			//{
-				//System.out.println("Invalid request... Quitting");
-				//System.exit(1);
-			//}
-			/*
-			 * Attempt to send response data to client
-			 */
-			try
-			{
-				sendSocket = new DatagramSocket();
-			}
-			catch(SocketException se)
-			{
-				se.printStackTrace();
-				System.exit(1);
-			}
-			
-		    send(sendPacket);
-		    
-			/*
-			 * Print sent packet information
-			 */
-			System.out.println("Server has sent packet");
-			System.out.println("To Host: " + sendPacket.getAddress());
-			System.out.println("Destination host port: " + sendPacket.getPort());
-			System.out.print("Response Packet: ");
-			for(int k = 0; k < response.length; k++)
-			{
-				System.out.print(" " + response[k]);
-			}
-			System.out.println("\nServer killed");
-		    sendSocket.close();
 		}
+		System.out.println("\nServer killed");
+	    sendSocket.close();
 	}
 	
     public void sendPackData(String name) throws FileNotFoundException, IOException
@@ -375,6 +238,175 @@ public class Server
         	
         	return data;
         }
+        
+    public void run()
+    {
+		// Once a packet has been received
+		System.out.println("Server has received a packet");
+		
+		// Determine Read or write
+		String requestType = "";
+		
+			// DATA packet formed if READ
+			if (request[1] == 1)
+			{
+				requestType = "Read";
+			}
+			// ACK packet formed if WRITE
+			if(request[1] == 2)
+			{
+				requestType = "Write";
+			}
+			// Invalid request
+			else
+			{
+				System.out.println("Invalid request... Quitting");
+				System.exit(1);
+			}
+		
+		System.out.println(requestType + " request received");
+		
+		/*
+		 * Parse received packet for proper format and extract file name and transfer mode
+		 */
+		 
+		// File name
+		byte[] file = new byte[0];
+		// Transfer mode
+		byte[] mode = new byte[0];
+		Boolean isValidRequest = false;
+		// Amount of zero bytes in the request
+		int count = 0;
+		for(int i = 2; i < request.length; i++)
+		{				
+			if(request[i] == 0)
+			{
+				// Extract data
+				count++;
+				if (count == 1)
+				{
+					file = Arrays.copyOfRange(request, 2, i);
+				}
+				if(count == 2)
+				{
+					mode = Arrays.copyOfRange(request, 3 + file.length, i);
+					isValidRequest = true;
+					break;
+				}
+			}	
+		}
+		
+		try
+		{
+			if(!isValidRequest)
+			{
+				throw new NoSuchFieldException();
+			}
+		}
+		catch(NoSuchFieldException e)
+		{
+			System.out.println("Invalid request... Quitting");
+			System.exit(1);
+		}
+		
+		// Convert the received file name back into a string
+		String fileName = new String(file);
+		// Create the file to be added to the directory
+		File receivedFile = new File(serverDir,fileName);
+		if(!receivedFile.exists())
+		{
+			boolean fileAdded = false;
+			try
+			{
+				// Create if the file doesn't already exist
+				receivedFile.createNewFile();
+				fileAdded = true;
+			} 
+			catch (IOException e) 
+			{
+				e.printStackTrace();
+				System.exit(1);
+			}
+			if(fileAdded)
+			{
+				System.out.println("Received file successfully added to the server directory.");
+			}
+		}
+		
+		/*
+		 * Print received packet information
+		 */
+		String fileStr = new String(file);
+		System.out.println("File Name: " + fileStr);
+		
+		String modeStr = new String(mode);
+		System.out.println("Mode: " + modeStr);
+		
+		int len = file.length + mode.length + 4;
+		System.out.println("Length: " + len);
+		
+		String infoStr = new String(request, 0, fileStr.length() + modeStr.length() + 4);
+		System.out.println("Information as String: " + infoStr);
+
+		String requestStr = Arrays.toString(Arrays.copyOfRange(request, 0, len));
+		System.out.println("Information as Bytes: "+ requestStr + "\n");
+		
+		// form the packet to be sent back to the client
+		// DATA packet formed if READ request received
+		if (requestType.equals("Read"))
+		{
+			try 
+			{
+				sendPackData(fileStr);
+			} 
+			catch (FileNotFoundException e) 
+			{
+				e.printStackTrace();
+			} 
+			catch (IOException e) 
+			{
+				e.printStackTrace();
+			}
+		}
+		// ACK packet formed if WRITE
+		if(requestType.equals("Write"))
+		{
+			sendAck();
+		}
+		// Invalid request
+		else
+		{
+			//System.out.println("Invalid request... Quitting");
+			//System.exit(1);
+		}
+		/*
+		 * Attempt to send response data to client
+		 */
+		try
+		{
+			sendSocket = new DatagramSocket();
+		}
+		catch(SocketException se)
+		{
+			se.printStackTrace();
+			System.exit(1);
+		}
+		
+	    send(sendPacket);
+	    
+		/*
+		 * Print sent packet information
+		 */
+		System.out.println("Server has sent packet");
+		System.out.println("To Host: " + sendPacket.getAddress());
+		System.out.println("Destination host port: " + sendPacket.getPort());
+		System.out.print("Response Packet: ");
+		for(int k = 0; k < response.length; k++)
+		{
+			System.out.print(" " + response[k]);
+		}
+		
+    }
 	
 	public void printServerDir()
 	{
@@ -430,7 +462,7 @@ public class Server
 	
 	public static void main(String[] args) throws FileNotFoundException, IOException
 	{
-		Server server = new Server();
+		Server server = new Server(false);
 		server.serverAlgorithm();
 	}
 }

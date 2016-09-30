@@ -28,8 +28,11 @@ public class Server implements Runnable
     private byte[] response = new byte[4];
     
     
-	
 	public Server(boolean b)
+	{
+		this(b,null);
+	}
+	public Server(boolean b, DatagramPacket rP)
 	{
 		
 		inuptChecker = new InputChecker();
@@ -50,6 +53,7 @@ public class Server implements Runnable
 		}
 		else
 		{
+			this.receivePacket = rP;
 			// File directory to store any received files
 			serverDir = new File("Server Directory");
 			// If the directory doesnt already exist, create it
@@ -89,9 +93,9 @@ public class Server implements Runnable
 		while(!inuptChecker.kill)
 		{
 			// Byte array to contain client request
-			byte[] request = new byte[512];
+			//byte[] request = new byte[512];
 			// Byte array to respond to request
-			byte[] response = new byte[4];
+			//byte[] response = new byte[4];
 			// Packet to be received from client
 			receivePacket = new DatagramPacket(request, request.length);
 			
@@ -114,9 +118,9 @@ public class Server implements Runnable
 			
 			receive();
 	
-			
+
 //////////////////////////////////////////////////////////////////////////
-			new Thread(new Server(true)).start();
+			new Thread(new Server(true, receivePacket)).start();
 /////////////////////////////////////////////////////////////////////////
 
 		}
@@ -248,14 +252,19 @@ public class Server implements Runnable
 		String requestType = "";
 		
 			// DATA packet formed if READ
-			if (request[1] == 1)
+			if (receivePacket.getData()[1] == 0x01)
 			{
-				requestType = "Read";
+				requestType = "Read request";
 			}
 			// ACK packet formed if WRITE
-			if(request[1] == 2)
+			if(receivePacket.getData()[1] ==  0x02)
 			{
-				requestType = "Write";
+				requestType = "Write request";
+			}
+			// If a data packet is received
+			if(receivePacket.getData()[1] ==  0x03)
+			{
+				requestType = "Data packet";
 			}
 			// Invalid request
 			else
@@ -264,7 +273,7 @@ public class Server implements Runnable
 				System.exit(1);
 			}
 		
-		System.out.println(requestType + " request received");
+		System.out.println(requestType + "  received");
 		
 		/*
 		 * Parse received packet for proper format and extract file name and transfer mode
@@ -309,30 +318,6 @@ public class Server implements Runnable
 			System.exit(1);
 		}
 		
-		// Convert the received file name back into a string
-		String fileName = new String(file);
-		// Create the file to be added to the directory
-		File receivedFile = new File(serverDir,fileName);
-		if(!receivedFile.exists())
-		{
-			boolean fileAdded = false;
-			try
-			{
-				// Create if the file doesn't already exist
-				receivedFile.createNewFile();
-				fileAdded = true;
-			} 
-			catch (IOException e) 
-			{
-				e.printStackTrace();
-				System.exit(1);
-			}
-			if(fileAdded)
-			{
-				System.out.println("Received file successfully added to the server directory.");
-			}
-		}
-		
 		/*
 		 * Print received packet information
 		 */
@@ -353,7 +338,7 @@ public class Server implements Runnable
 		
 		// form the packet to be sent back to the client
 		// DATA packet formed if READ request received
-		if (requestType.equals("Read"))
+		if (requestType.equals("Read request"))
 		{
 			try 
 			{
@@ -369,31 +354,22 @@ public class Server implements Runnable
 			}
 		}
 		// ACK packet formed if WRITE
-		if(requestType.equals("Write"))
+		if(requestType.equals("Write request"))
+		{
+			handleWrite(file);
+		}
+		// If a Data packet is received
+		if(requestType.equals("Data packet"))
 		{
 			sendAck();
 		}
 		// Invalid request
 		else
 		{
-			//System.out.println("Invalid request... Quitting");
-			//System.exit(1);
-		}
-		/*
-		 * Attempt to send response data to client
-		 */
-		try
-		{
-			sendSocket = new DatagramSocket();
-		}
-		catch(SocketException se)
-		{
-			se.printStackTrace();
+			System.out.println("Invalid request... Quitting");
 			System.exit(1);
 		}
-		
-	    send(sendPacket);
-	    
+
 		/*
 		 * Print sent packet information
 		 */
@@ -404,6 +380,72 @@ public class Server implements Runnable
 		for(int k = 0; k < response.length; k++)
 		{
 			System.out.print(" " + response[k]);
+		}
+		
+    }
+    
+    public void handleWrite(byte[] f)
+    {
+    	// Adds file to directory
+    	
+    	// Convert the received file name back into a string
+    	String fileName = new String(f);
+    	// Create the file to be added to the directory
+    	File receivedFile = new File(serverDir,fileName);
+    	if(!receivedFile.exists())
+    	{
+    		boolean fileAdded = false;
+    		try
+    		{
+    			// Create if the file doesn't already exist
+    			receivedFile.createNewFile();
+    			fileAdded = true;
+    		} 
+    		catch (IOException e) 
+    		{
+    			e.printStackTrace();
+    			System.exit(1);
+    		}
+    		if(fileAdded)
+    		{
+    			System.out.println("Received file created in the server directory.");
+    		}
+    	}
+    	
+    	sendAck();
+    	send(sendPacket);
+    	
+    	receive();
+    	
+    	byte[] temp = new byte[512];
+    	receivePacket = new DatagramPacket(temp, temp.length);
+    	
+    	String writeData = new String(temp);
+    	Writer writer = null;
+    	
+    	if(temp[1] == 3)
+    	{
+    		try
+    		{
+    			writer = new BufferedWriter(new OutputStreamWriter(
+    										new FileOutputStream(fileName)));
+    			writer.write(writeData);
+    		}
+    		catch(IOException e)
+    		{
+    			e.printStackTrace();
+    			System.exit(1);
+    		}
+    	}
+    	
+    	try 
+    	{
+			writer.close();
+		} 
+    	catch (IOException e)
+    	{
+			e.printStackTrace();
+			System.exit(1);
 		}
 		
     }
@@ -429,6 +471,18 @@ public class Server implements Runnable
 	
 	public void send(DatagramPacket sendPacket)
 	{
+		/*
+		 * Attempt to send response data to client
+		 */
+		try
+		{
+			sendSocket = new DatagramSocket();
+		}
+		catch(SocketException se)
+		{
+			se.printStackTrace();
+			System.exit(1);
+		}
 		
 		try
 		{

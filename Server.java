@@ -1,5 +1,4 @@
-/**
- * Project Server class
+* Project Server class
  * SYSC 3303 L2
  * Andrew Ward, Alex Hoecht, Connor Emery, Robert Graham, Saleem Karkabi
  * 100898624,   100933730,   100980809,    100981086,     100944655

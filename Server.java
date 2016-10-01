@@ -27,6 +27,8 @@ public class Server implements Runnable
     private byte[] request = new byte[512];
     private byte[] pack = new byte[4];
     
+ // Determine Read or write
+ 	private String requestType = "";
     
 	public Server(boolean b)
 	{
@@ -132,9 +134,6 @@ public class Server implements Runnable
     {
 		// Once a packet has been received
 		System.out.println("Server has received a packet");
-		
-		// Determine Read or write
-		String requestType = "";
 		
 		System.out.println(receivePacket.getData()[1]);
 		
@@ -284,6 +283,7 @@ public class Server implements Runnable
     {
     	// Convert the received file name back into a string
     	String fileName = new String(f);
+    	
     	// Create the file to be added to the directory
     	File receivedFile = new File(serverDir,fileName);
     	if(!receivedFile.exists())
@@ -308,30 +308,32 @@ public class Server implements Runnable
     	
     	sendAck();
     	send(sendPacket);
-    	boolean fileEnd = false;
-		while(!fileEnd)
-    	{
-    		try
-    		{
-    			sendSocket.receive(receivePacket);
-    		}
-    		catch(IOException e)
-    		{
-    			e.printStackTrace();
-    			System.exit(1);
-    		}
+    	if(requestType.equals("Data packet")){	
+    	//boolean fileEnd = false;
+		//while(!fileEnd)
+    	//{
+    		//try
+    		//{
+    			//sendSocket.receive(receivePacket);
+    		//}
+    		//catch(IOException e)
+    		//{
+    			//e.printStackTrace();
+    			//System.exit(1);
+    		//}
     		
     		appendToFile(receivedFile, receivePacket.getData());
     		
-    		if(receivePacket.getData().length < 512)
-    		{
-    			fileEnd = true;
-    		}
+    		//if(receivePacket.getData().length < 512)
+    		//{
+    			//fileEnd = true;
+    		//}
     		sendAck();
         	send(sendPacket);
-    	}
-    	System.out.print("Leaving data loop");
+    	//}
+    	//System.out.print("Leaving data loop");
 	}
+    }
     	
 	
     public void sendData(String name) throws FileNotFoundException, IOException
@@ -450,7 +452,7 @@ public class Server implements Runnable
     /**
 	 * Appends data to the specified text file. If the file does not exist then create it and append.
 	 */
-    public void appendToFile(File file, byte[] byteData)
+    public void appendToFile(File f, byte[] byteData)
     {
     	//////////////////////////////////////////////////////////////////////////
     	String filePath = "C:/Users/alexh/Desktop/school/Carleton/Year 4/Sysc 3303/GroupProject";
@@ -459,7 +461,7 @@ public class Server implements Runnable
     		{
     			String stringData = new String(byteData);
 
-    			//File file = new File(name);
+    			File file = new File(filePath + f);
 
     			// If file does not exists, then create it
     			//if (!file.exists())
@@ -467,6 +469,10 @@ public class Server implements Runnable
     				//file.createNewFile();
     			//}
 
+    			String s = new String(byteData);
+    			System.out.println(s);
+    			System.out.println(f.toString());
+    			
     			FileWriter fw = new FileWriter(file.getAbsoluteFile(), true);
     			BufferedWriter bw = new BufferedWriter(fw);
     			bw.write(stringData);

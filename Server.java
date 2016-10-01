@@ -25,7 +25,7 @@ public class Server implements Runnable
     private Thread inuptCheckerThread;
     
     private byte[] request = new byte[512];
-    private byte[] response = new byte[4];
+    private byte[] pack = new byte[4];
     
     
 	public Server(boolean b)
@@ -106,7 +106,7 @@ public class Server implements Runnable
 			System.out.println("Waiting...\n");
 				
 			// Slow the program down to simulate wait time
-			try
+			/*try
 			{
 				Thread.sleep(5000);
 			}
@@ -114,7 +114,7 @@ public class Server implements Runnable
 			{
 				e.printStackTrace();
 				System.exit(1);
-			}
+			}*/
 			
 			receive();
 	
@@ -198,6 +198,8 @@ public class Server implements Runnable
             }
             System.out.println(a + ", " + b);
          	re(fdata);
+         	
+         	receive();
         }
         in.close();
     }
@@ -205,10 +207,8 @@ public class Server implements Runnable
     public void sendAck()
     {
     	
-    	byte[] pack = new byte[4];
-    	
+    	//HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     	pack[0] = 0;
-    	pack[1] = 4;
     	pack[3] = (byte) (receivePacket.getData()[3] & 0xFF);
         pack[2] = (byte) ((receivePacket.getData()[2] >> 8) & 0xFF);
 
@@ -275,7 +275,7 @@ public class Server implements Runnable
 				System.exit(1);
 			}
 		
-		System.out.println(requestType + "  received");
+		System.out.println(requestType + " received");
 		
 		/*
 		 * Parse received packet for proper format and extract file name and transfer mode
@@ -308,7 +308,7 @@ public class Server implements Runnable
 			}	
 		}
 		
-		try
+		/*try
 		{
 			if(!isValidRequest)
 			{
@@ -320,7 +320,7 @@ public class Server implements Runnable
 			System.out.println("Invalid request... Quitting");
 			System.exit(1);
 		}
-		
+		*/
 		/*
 		 * Print received packet information
 		 */
@@ -345,7 +345,9 @@ public class Server implements Runnable
 		{
 			try 
 			{
+				pack[1] = (byte) 3;
 				sendPackData(fileStr);
+
 			} 
 			catch (FileNotFoundException e) 
 			{
@@ -359,12 +361,15 @@ public class Server implements Runnable
 		// ACK packet formed if WRITE
 		if(requestType.equals("Write request"))
 		{
+			pack[1] = (byte) 4;
 			handleWrite(file);
 		}
 		// If a Data packet is received
 		if(requestType.equals("Data packet"))
 		{
+			pack[1] = 4;
 			sendAck();
+			send(sendPacket);
 		}
 		// Invalid request
 		else
@@ -380,17 +385,17 @@ public class Server implements Runnable
 		System.out.println("To Host: " + sendPacket.getAddress());
 		System.out.println("Destination host port: " + sendPacket.getPort());
 		System.out.print("Response Packet: ");
-		for(int k = 0; k < response.length; k++)
+		for(int k = 0; k < pack.length; k++)
 		{
-			System.out.print(" " + response[k]);
+			System.out.print(" " + pack[k]);
 		}
 		
     }
     
     public void handleWrite(byte[] f)
     {
-    	// Adds file to directory
-    	
+    	// 
+    	boolean fileEnd = false;
     	// Convert the received file name back into a string
     	String fileName = new String(f);
     	// Create the file to be added to the directory
@@ -417,53 +422,61 @@ public class Server implements Runnable
     	
     	sendAck();
     	send(sendPacket);
-    	
-    	try
-		{
-			sendSocket.receive(receivePacket);
-		}
-		catch(IOException e)
-		{
-			e.printStackTrace();
-			System.exit(1);
-		}
-    	
-    	byte[] temp = new byte[512];
-    	receivePacket = new DatagramPacket(temp, temp.length);
-    	
-    	String writeData = new String(temp);
-    	Writer writer = null;
-    	
-    	if(temp[1] == 3)
+    	while(!fileEnd)
     	{
     		try
     		{
-    			writer = new BufferedWriter(new OutputStreamWriter(
-    										new FileOutputStream(fileName)));
-    			writer.write(writeData);
+    			sendSocket.receive(receivePacket);
     		}
     		catch(IOException e)
     		{
     			e.printStackTrace();
     			System.exit(1);
     		}
+    	
+    		byte[] temp = new byte[516];
+    		receivePacket = new DatagramPacket(temp, temp.length);
+    		
+    		appendToFile(fileName, receivePacket.getData());
+    		
+    		fileEnd = true;
+    		
     	}
-    	
-    	try 
-    	{
-			writer.close();
-		} 
-    	catch (IOException e)
-    	{
-			e.printStackTrace();
-			System.exit(1);
-		}
-		
-    	
-    	
+    	System.out.print("Leaving data loop");
     	
     }
 	
+    /**
+	 * Appends data to the specified text file. If the file does not exist then create it and append.
+	 */
+    public void appendToFile(String name, byte[] byteData)
+    {
+    	//////////////////////////////////////////////////////////////////////////
+    	String filePath = "C:/Users/alexhoecht/workspace/GroupProject/";
+    		
+    	try
+    		{
+    			String stringData = new String(byteData);
+
+    			File file = new File(filePath + name);
+
+    			// If file does not exists, then create it
+    			if (!file.exists())
+    			{
+    				file.createNewFile();
+    			}
+
+    			FileWriter fw = new FileWriter(file.getAbsoluteFile(), true);
+    			BufferedWriter bw = new BufferedWriter(fw);
+    			bw.write(stringData);
+    			bw.close();
+    		}
+    		catch (IOException e)
+    		{
+    			e.printStackTrace();
+    		}
+    	}
+    
 	public void printServerDir()
 	{
 		int count = 1;
@@ -500,6 +513,7 @@ public class Server implements Runnable
 		
 		try
 		{
+			System.out.println("\n\n\n" + sendPacket.getPort() + "\n\n\n");
 			sendSocket.send(sendPacket);
 		}
 		catch(IOException e)
@@ -508,6 +522,11 @@ public class Server implements Runnable
 			System.exit(1);
 		}
 		System.out.println("Server has sent packet\n");
+		
+		for(int i = 0; i < sendPacket.getData().length; i++)
+		{
+			System.out.print(sendPacket.getData()[i]);
+		}
 		
 	}
 	public void receive ()

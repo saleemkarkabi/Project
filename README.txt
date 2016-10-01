@@ -1,4 +1,5 @@
 Iteration #1
+Group 7
 SYSC 3303 L2
 Andrew Ward, Alex Hoecht, Connor Emery, Robert Graham, Saleem Karkabi
 100898624,   100933730,   100980809,    100981086,     100944655
@@ -8,6 +9,7 @@ Contains the following files:
 Client.java - Read/Write/Invalid requests
 ErrorSimulator.java - Transfers requests between Client and Server
 Server.java - Creates ACK's to Read/Write/Invalid requests
+InputChecker.java - implements a "nice" way to kill the thread
 UML collaboration diagrams for the above classes
 UCM Diamgram of the entire system
 UML Diagrams for each class
@@ -22,7 +24,7 @@ How to Run the project
 Project Responsibilities
 
 Andrew Ward:
-  Assignment #1, UCM Diagram for entire System, UML Diagrams for each Class, Error Simulator Class
+  Assignment #1 used, UCM Diagram for entire System, UML Diagrams for each Class, Error Simulator Class
   
 Alex Hoecht:
   Server Class - adding comments, implementing a directory, and handeling different data packets.

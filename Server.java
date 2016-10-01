@@ -1,4 +1,5 @@
 /**
+ /**
  * Project Server class
  * SYSC 3303 L2
  * Andrew Ward, Alex Hoecht, Connor Emery, Robert Graham, Saleem Karkabi
@@ -128,7 +129,217 @@ public class Server implements Runnable
 	    sendSocket.close();
 	}
 	
-    public void sendPackData(String name) throws FileNotFoundException, IOException
+	public void run()
+    {
+		// Once a packet has been received
+		System.out.println("Server has received a packet");
+		
+		// Determine Read or write
+		String requestType = "";
+		
+		System.out.println(receivePacket.getData()[1]);
+		
+			// DATA packet formed if READ
+			if (receivePacket.getData()[1] == 0x01)
+			{
+				requestType = "Read request";
+			}
+			// ACK packet formed if WRITE
+			else if(receivePacket.getData()[1] ==  0x02)
+			{
+				requestType = "Write request";
+			}
+			// If a data packet is received
+			else if(receivePacket.getData()[1] ==  0x03)
+			{
+				requestType = "Data packet";
+			}
+			// Invalid request
+			else
+			{
+				System.out.println("Invalid request... Quitting");
+				System.exit(1);
+			}
+		
+		System.out.println(requestType + " received");
+		
+		/*
+		 * Parse received packet for proper format and extract file name and transfer mode
+		 */
+		// File name
+		byte[] file = new byte[0];
+		// Transfer mode
+		byte[] mode = new byte[0];
+		//Boolean isValidRequest = false;
+		// Amount of zero bytes in the request
+		int count = 0;
+		
+		///////////// ADDED THIS IF CONDITION
+		if(requestType.equals("Write request") || requestType.equals("Read request")) 
+		{
+		for(int i = 2; i < request.length; i++)
+		{				
+			if(receivePacket.getData()[i] == 0)
+			{
+				// Extract data
+				count++;
+				if (count == 1)
+				{
+					file = Arrays.copyOfRange(receivePacket.getData(), 2, i);
+				}
+				if(count == 2)
+				{
+					mode = Arrays.copyOfRange(receivePacket.getData(), 3 + file.length, i);
+					//isValidRequest = true;
+					break;
+				}
+			}	
+		}
+		}
+		// THIS ISSSSSSS BADDDDDDDDDDDDDDD     >:(   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		/*try
+		{
+			if(!isValidRequest)
+			{
+				throw new NoSuchFieldException();
+			}
+		}
+		catch(NoSuchFieldException e)
+		{
+			System.out.println("Invalid request... Quitting");
+			System.exit(1);
+		}
+		*/
+		/*
+		 * Print received packet information
+		 */
+		String fileStr = new String(file);
+		System.out.println("File Name: " + fileStr);
+		
+		String modeStr = new String(mode);
+		System.out.println("Mode: " + modeStr);
+		
+		int len = receivePacket.getData().length;
+		System.out.println("Length: " + len);
+		
+		String infoStr = new String(receivePacket.getData(), 0, len);
+		System.out.println("Information as String: " + infoStr);
+
+		String requestStr = Arrays.toString(Arrays.copyOfRange(receivePacket.getData(), 0, len));
+		System.out.println("Information as Bytes: "+ requestStr + "\n");
+		
+		// form the packet to be sent back to the client
+		// DATA packet formed if READ request received
+		if (requestType.equals("Read request"))
+		{
+			try 
+			{
+				pack[1] = (byte) 3;
+				sendData(fileStr);
+
+			} 
+			catch (FileNotFoundException e) 
+			{
+				e.printStackTrace();
+			} 
+			catch (IOException e) 
+			{
+				e.printStackTrace();
+			}
+		}
+		// ACK packet formed if WRITE
+		else if(requestType.equals("Write request"))
+		{
+			pack[1] = (byte) 4;
+			handleWrite(file);
+		}
+		// If a Data packet is received
+		else if(requestType.equals("Data packet"))
+		{
+			String temp = new String(file);
+			File receivedFile = new File(serverDir,temp);
+			appendToFile(receivedFile,file);
+			pack[1] = 4;
+			sendAck();
+			send(sendPacket);
+		}
+		// Invalid request
+		else
+		{
+			System.out.println("Invalid request... Quitting");
+			System.exit(1);
+		}
+
+		/*
+		 * Print sent packet information
+		 */
+		System.out.println("Server has sent packet");
+		System.out.println("To Host: " + sendPacket.getAddress());
+		System.out.println("Destination host port: " + sendPacket.getPort());
+		System.out.print("Response Packet: ");
+		for(int k = 0; k < pack.length; k++)
+		{
+			System.out.print(" " + pack[k]);
+		}
+		
+		System.out.println();
+    }
+	
+	public void handleWrite(byte[] f)
+    {
+    	// 
+    	boolean fileEnd = false;
+    	// Convert the received file name back into a string
+    	String fileName = new String(f);
+    	// Create the file to be added to the directory
+    	File receivedFile = new File(serverDir,fileName);
+    	if(!receivedFile.exists())
+    	{
+    		boolean fileAdded = false;
+    		try
+    		{
+    			// Create if the file doesn't already exist
+    			receivedFile.createNewFile();
+    			fileAdded = true;
+    		} 
+    		catch (IOException e) 
+    		{
+    			e.printStackTrace();
+    			System.exit(1);
+    		}
+    		if(fileAdded)
+    		{
+    			System.out.println("Received file created in the server directory.");
+    		}
+    	}
+    	
+    	sendAck();
+    	send(sendPacket);
+    	while(!fileEnd)
+    	{
+    		try
+    		{
+    			sendSocket.receive(receivePacket);
+    		}
+    		catch(IOException e)
+    		{
+    			e.printStackTrace();
+    			System.exit(1);
+    		}
+    	
+    		byte[] temp = new byte[516];
+    		receivePacket = new DatagramPacket(temp, temp.length);
+    		
+    		appendToFile(receivedFile, receivePacket.getData());
+    		
+    		fileEnd = true;
+    		
+    	}
+    	System.out.print("Leaving data loop");
+    	
+    }
+	
+    public void sendData(String name) throws FileNotFoundException, IOException
     {
     	int packNum = 0;
     	
@@ -214,257 +425,52 @@ public class Server implements Runnable
 
         sendPacket = new DatagramPacket(pack,pack.length,receivePacket.getAddress(), receivePacket.getPort());
     }
-    	
-        // wipes array replacing all elements with null
-        public byte [] re (byte[] data)
-        {
-        	for (int i = 0; i < data.length; i++)
-    	{
-        		data[i] = 0x00;
-        	}
-        	return data;
-        }
-    	
-        // resizes arrays to remove null at the end
-        public byte[] resize (byte[] data)
-        {
-        	int i;
-        	for(i = 4; i < data.length; i++)
-    	{
-        		if(data[i] == 0x00)
-    		{
-        			break;
-        			
-        		}
-        	}
-        	
-        	data = Arrays.copyOf(data, i+1);
-        	
-        	return data;
-        }
-        
-    public void run()
-    {
-		// Once a packet has been received
-		System.out.println("Server has received a packet");
-		
-		// Determine Read or write
-		String requestType = "";
-		
-		System.out.println(receivePacket.getData()[1]);
-		
-			// DATA packet formed if READ
-			if (receivePacket.getData()[1] == 0x01)
-			{
-				requestType = "Read request";
-			}
-			// ACK packet formed if WRITE
-			else if(receivePacket.getData()[1] ==  0x02)
-			{
-				requestType = "Write request";
-			}
-			// If a data packet is received
-			else if(receivePacket.getData()[1] ==  0x03)
-			{
-				requestType = "Data packet";
-			}
-			// Invalid request
-			else
-			{
-				System.out.println("Invalid request... Quitting");
-				System.exit(1);
-			}
-		
-		System.out.println(requestType + " received");
-		
-		/*
-		 * Parse received packet for proper format and extract file name and transfer mode
-		 */
-		 
-		// File name
-		byte[] file = new byte[0];
-		// Transfer mode
-		byte[] mode = new byte[0];
-		Boolean isValidRequest = false;
-		// Amount of zero bytes in the request
-		int count = 0;
-		
-		for(int i = 2; i < request.length; i++)
-		{				
-			if(receivePacket.getData()[i] == 0)
-			{
-				// Extract data
-				count++;
-				if (count == 1)
-				{
-					file = Arrays.copyOfRange(receivePacket.getData(), 2, i);
-				}
-				if(count == 2)
-				{
-					mode = Arrays.copyOfRange(receivePacket.getData(), 3 + file.length, i);
-					isValidRequest = true;
-					break;
-				}
-			}	
-		}
-		
-		/*try
-		{
-			if(!isValidRequest)
-			{
-				throw new NoSuchFieldException();
-			}
-		}
-		catch(NoSuchFieldException e)
-		{
-			System.out.println("Invalid request... Quitting");
-			System.exit(1);
-		}
-		*/
-		/*
-		 * Print received packet information
-		 */
-		String fileStr = new String(file);
-		System.out.println("File Name: " + fileStr);
-		
-		String modeStr = new String(mode);
-		System.out.println("Mode: " + modeStr);
-		
-		int len = file.length + mode.length + 4;
-		System.out.println("Length: " + len);
-		
-		String infoStr = new String(receivePacket.getData(), 0, fileStr.length() + modeStr.length() + 4);
-		System.out.println("Information as String: " + infoStr);
-
-		String requestStr = Arrays.toString(Arrays.copyOfRange(receivePacket.getData(), 0, len));
-		System.out.println("Information as Bytes: "+ requestStr + "\n");
-		
-		// form the packet to be sent back to the client
-		// DATA packet formed if READ request received
-		if (requestType.equals("Read request"))
-		{
-			try 
-			{
-				pack[1] = (byte) 3;
-				sendPackData(fileStr);
-
-			} 
-			catch (FileNotFoundException e) 
-			{
-				e.printStackTrace();
-			} 
-			catch (IOException e) 
-			{
-				e.printStackTrace();
-			}
-		}
-		// ACK packet formed if WRITE
-		if(requestType.equals("Write request"))
-		{
-			pack[1] = (byte) 4;
-			handleWrite(file);
-		}
-		// If a Data packet is received
-		if(requestType.equals("Data packet"))
-		{
-			pack[1] = 4;
-			sendAck();
-			send(sendPacket);
-		}
-		// Invalid request
-		else
-		{
-			System.out.println("Invalid request... Quitting");
-			System.exit(1);
-		}
-
-		/*
-		 * Print sent packet information
-		 */
-		System.out.println("Server has sent packet");
-		System.out.println("To Host: " + sendPacket.getAddress());
-		System.out.println("Destination host port: " + sendPacket.getPort());
-		System.out.print("Response Packet: ");
-		for(int k = 0; k < pack.length; k++)
-		{
-			System.out.print(" " + pack[k]);
-		}
-		
-    }
     
-    public void handleWrite(byte[] f)
+    // wipes array replacing all elements with null
+    public byte [] re (byte[] data)
     {
-    	// 
-    	boolean fileEnd = false;
-    	// Convert the received file name back into a string
-    	String fileName = new String(f);
-    	// Create the file to be added to the directory
-    	File receivedFile = new File(serverDir,fileName);
-    	if(!receivedFile.exists())
+    	for (int i = 0; i < data.length; i++)
     	{
-    		boolean fileAdded = false;
-    		try
-    		{
-    			// Create if the file doesn't already exist
-    			receivedFile.createNewFile();
-    			fileAdded = true;
-    		} 
-    		catch (IOException e) 
-    		{
-    			e.printStackTrace();
-    			System.exit(1);
-    		}
-    		if(fileAdded)
-    		{
-    			System.out.println("Received file created in the server directory.");
-    		}
-    	}
-    	
-    	sendAck();
-    	send(sendPacket);
-    	while(!fileEnd)
-    	{
-    		try
-    		{
-    			sendSocket.receive(receivePacket);
-    		}
-    		catch(IOException e)
-    		{
-    			e.printStackTrace();
-    			System.exit(1);
-    		}
-    	
-    		byte[] temp = new byte[516];
-    		receivePacket = new DatagramPacket(temp, temp.length);
-    		
-    		appendToFile(fileName, receivePacket.getData());
-    		
-    		fileEnd = true;
-    		
-    	}
-    	System.out.print("Leaving data loop");
-    	
+    		data[i] = 0x00;
+        }
+        return data;
     }
+    	
+    // resizes arrays to remove null at the end
+    public byte[] resize (byte[] data)
+    {
+       int i;
+       for(i = 4; i < data.length; i++)
+       {
+    	   if(data[i] == 0x00)
+    	   {
+        		break;	
+    	   }
+       }        	
+       data = Arrays.copyOf(data, i+1);
+        	
+       return data;
+   }
 	
     /**
 	 * Appends data to the specified text file. If the file does not exist then create it and append.
 	 */
-    public void appendToFile(String name, byte[] byteData)
+    public void appendToFile(File file, byte[] byteData)
     {
     	//////////////////////////////////////////////////////////////////////////
-    	String filePath = "C:/Users/alexhoecht/workspace/GroupProject/";
+    	String filePath = "C:/Users/alexh/Desktop/school/Carleton/Year 4/Sysc 3303/GroupProject";
     		
     	try
     		{
     			String stringData = new String(byteData);
 
-    			File file = new File(filePath + name);
+    			//File file = new File(name);
 
     			// If file does not exists, then create it
-    			if (!file.exists())
-    			{
-    				file.createNewFile();
-    			}
+    			//if (!file.exists())
+    			//{
+    				//file.createNewFile();
+    			//}
 
     			FileWriter fw = new FileWriter(file.getAbsoluteFile(), true);
     			BufferedWriter bw = new BufferedWriter(fw);

@@ -1,5 +1,4 @@
 /**
- /**
  * Project Server class
  * SYSC 3303 L2
  * Andrew Ward, Alex Hoecht, Connor Emery, Robert Graham, Saleem Karkabi
@@ -256,12 +255,8 @@ public class Server implements Runnable
 		// If a Data packet is received
 		else if(requestType.equals("Data packet"))
 		{
-			String temp = new String(file);
-			File receivedFile = new File(serverDir,temp);
-			appendToFile(receivedFile,file);
 			pack[1] = 4;
-			sendAck();
-			send(sendPacket);
+			handleWrite(file);
 		}
 		// Invalid request
 		else
@@ -287,8 +282,6 @@ public class Server implements Runnable
 	
 	public void handleWrite(byte[] f)
     {
-    	// 
-    	boolean fileEnd = false;
     	// Convert the received file name back into a string
     	String fileName = new String(f);
     	// Create the file to be added to the directory
@@ -315,7 +308,8 @@ public class Server implements Runnable
     	
     	sendAck();
     	send(sendPacket);
-    	while(!fileEnd)
+    	boolean fileEnd = false;
+		while(!fileEnd)
     	{
     		try
     		{
@@ -326,18 +320,19 @@ public class Server implements Runnable
     			e.printStackTrace();
     			System.exit(1);
     		}
-    	
-    		byte[] temp = new byte[516];
-    		receivePacket = new DatagramPacket(temp, temp.length);
     		
     		appendToFile(receivedFile, receivePacket.getData());
     		
-    		fileEnd = true;
-    		
+    		if(receivePacket.getData().length < 512)
+    		{
+    			fileEnd = true;
+    		}
+    		sendAck();
+        	send(sendPacket);
     	}
     	System.out.print("Leaving data loop");
+	}
     	
-    }
 	
     public void sendData(String name) throws FileNotFoundException, IOException
     {

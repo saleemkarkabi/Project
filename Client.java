@@ -18,9 +18,11 @@ public class Client
 	
 	private DatagramSocket sendReceiveSocket;
 	private DatagramPacket sendPacket, receivePacket;
-	private String fileName;
+	private String fileName;	
 	private String mode;
 	private byte[] message;
+	private boolean quiet;
+	private boolean normal;
 	
 	public Client()
 	{
@@ -28,14 +30,16 @@ public class Client
 		try
 		{
 			sendReceiveSocket = new DatagramSocket();
+			System.out.println(sendReceiveSocket.getLocalPort());
 		}
 		catch(SocketException se)
 		{
 			se.printStackTrace();
 			System.exit(1);
 		}
-		fileName = "test.txt";
+		
 		mode = "ocTEt".toLowerCase();
+		fileName = "stupud.txt";
 		
 		byte[] data = new byte[4];
 		receivePacket = new DatagramPacket(data,data.length);
@@ -48,7 +52,7 @@ public class Client
 	{
 		try
 		{
-			sendPacket = new DatagramPacket(packet,packet.length,InetAddress.getLocalHost(),23);
+			sendPacket = new DatagramPacket(packet,packet.length,InetAddress.getLocalHost(),69);
 		}
 		catch(UnknownHostException e)
 		{
@@ -60,137 +64,282 @@ public class Client
 
 	public void ClientAlgorithm()
 	{
+		  boolean running = true;
+		  while (running){
+		  String request = null;
 		
-		String request;
+		  int tOrN = 0;//keeps track between test or normal mode
+	      int qOrV = 0;//keeps track between quiet and verbose 
+	    
+	      System.out.print("Would you like to enter test mode, or normal mode? (1 for test 2 for normal): ");
+	      try{
+	    	
+	        BufferedReader bufferRead = new BufferedReader(new InputStreamReader(System.in));
+	        String inputString = bufferRead.readLine();
+	          
+	          while(tOrN == 0){
+	        	  
+	              if(inputString.equals("1")){
+	            	
+	                 System.out.println("\nWe are now in test mode\n");
+	                 tOrN = 1;
+	                 normal = false;
+	              
+	              }else if(inputString.equals("2")){
+	            	
+	        	     System.out.println("\nWe are now in normal mode\n");
+	        	     tOrN = 2;
+	        	     normal = true;
+	        	  
+	              }else{
+	            	
+	        	     System.out.print("Invalid option, please enter 1 for test mode and 2 for normal mode: ");
+	        	     inputString = bufferRead.readLine();
+	        	  
+	              }
+	            
+	          }
+	          
+	      }catch(IOException ex){
+	        	
+	          ex.printStackTrace();
+	          
+	      }
+	        
+	      System.out.print("Would you like to enter quiet mode, or verbose mode? (1 for quiet 2 for verbose): ");
+          try{
+        	
+              BufferedReader bufferRead = new BufferedReader(new InputStreamReader(System.in));
+              String inputString = bufferRead.readLine();
+          
+              while(qOrV == 0){
+            	  
+                  if(inputString.equals("1")){
+                	
+                      System.out.println("\nWe are now in quiet mode\n");
+                      qOrV = 1;
+                      quiet = true;
+              
+                  }else if(inputString.equals("2")){
+                	
+        	          System.out.println("\nWe are now in verbose mode\n");
+        	          qOrV = 2;
+        	          quiet = false;
+        	  
+                  }else{
+                	
+        	          System.out.print("Invalid option, please enter 1 for quiet mode and 2 for verbose mode: ");
+        	          inputString = bufferRead.readLine();
+        	      
+                  }
+            
+              }
+          
+              }catch(IOException ex){
+            	
+                  ex.printStackTrace();
+          
+              }
 		
-		for(int i = 0; i < 11; i++)
-		{
-			message = new byte[4 + fileName.length() + mode.length()];
-			message[0] = 0;
+		  int w = 0;
+		  while(w == 0)
+		  {
+			  message = new byte[4 + fileName.length() + mode.length()];
+			  message[0] = 0;
 			
-			if(i == 10)
-			{
-				message[1] = 0;
-				request = "Error"; // #11 invalid request
-			}
-			else if(i%2 == 0)
-			{
-				message[1] =1;
-				request = "Read"; // read request
-			}
-			else
-			{
-				message[1]=2;
-				request = "Write"; // write request
-			}
+			  System.out.print("Would you like to read a file (read) or write to a file (write)? ");
+			  try{
+			    BufferedReader bufferRead = new BufferedReader(new InputStreamReader(System.in));
+	            String inputString = bufferRead.readLine();
+	            
+			    if(inputString.equals("read"))
+			    {
+				    message[1] =1;
+				    request = "Read"; // read request
+			    }
+			    else if(inputString.equals("write"))
+			    {
+				    message[1]=2;
+				    request = "Write"; // write request
+			    }
+			    else
+			    {
+				    message[1] = 0;
+				    request = "Error"; // #11 invalid request
+			    }
 			
-			byte[] fileNameToBytes = fileName.getBytes();
-			int os1 = fileNameToBytes.length;
 			
-			try
-			{
-				File file = new File(fileName);
+			   }catch(IOException ex){
+	            	
+	                  ex.printStackTrace();
+	          
+	           }
+			
+			  System.out.print("what is the name of your file? ");
+			
+			  try{
+				  BufferedReader bufferRead = new BufferedReader(new InputStreamReader(System.in));
+		          String inputString = bufferRead.readLine();
+		        
+		          fileName = inputString;
+		        
+			  }catch(IOException ex){
+            	
+                  ex.printStackTrace();
+          
+              }
+		
+			
+			  byte[] fileNameToBytes = fileName.getBytes();
+			  int os1 = fileNameToBytes.length;
+			if (request.equals("read")){
+			  try
+			  {
+				  File file = new File(fileName);
 				
-				if(file.createNewFile())
-				{
-					System.out.println("File is created");
-				}
-				else
-				{
-					System.out.println("File already exists.");
-				}
+				  if(file.createNewFile())
+				  {
+					  System.out.println("File is created");
+				  }
+				  else
+				  {
+					  System.out.println("File already exists.");
+				  }
 				
+			  }
+			
+			  catch (IOException e)
+			  {
+				  e.printStackTrace();
+			  }
 			}
-			catch (IOException e)
-			{
-				e.printStackTrace();
-			}
+			  System.arraycopy(fileNameToBytes, 0, message, 2, os1);
+			  message[os1 + 2] = 0;
 			
-			System.arraycopy(fileNameToBytes, 0, message, 2, os1);
-			message[os1 + 2] = 0;
+			  byte[] modeToBytes = mode.getBytes();
+			  int os2 = modeToBytes.length;
 			
-			byte[] modeToBytes = mode.getBytes();
-			int os2 = modeToBytes.length;
+			  System.arraycopy(modeToBytes, 0, message, os1 + 3, os2);
+			  int os3 = os1 + os2 + 3;
+			  message[os3] = 0;
 			
-			System.arraycopy(modeToBytes, 0, message, os1 + 3, os2);
-			int os3 = os1 + os2 + 3;
-			message[os3] = 0;
-			
-			// forming Packet that will be sent to server but first the intermediate host at port 23
-			try
-			{
-				sendPacket = new DatagramPacket(message,message.length,InetAddress.getLocalHost(),23);
-			}
-			catch(UnknownHostException e)
-			{
-				e.printStackTrace();
-				System.exit(1);
-			}
-			
-			
-			
-			send(sendPacket);
-			
-			
-			
-			//Send Packet info
-			
-			
-			System.out.println("Sending: " + request + " Request");
-			System.out.println("Host: " + sendPacket.getAddress());
-			System.out.println("Destination Port: " + sendPacket.getPort());
-			System.out.println("File Name: " + fileName);
-			System.out.println("Mode: " + mode);
-			
-			int length1 = os3 + 1;
-			System.out.println("Length: " + length1);
-			String info = new String(message,0,length1);
-			System.out.println("String : " + info);
-			System.out.println("Bytes : " + Arrays.toString(message));
-			
-			// receive packet
+			  // forming Packet that will be sent to server but first the intermediate host at port 23
+			  try
+			  {
+				  if(normal == false){
+					
+					  sendPacket = new DatagramPacket(message,message.length,InetAddress.getLocalHost(),23);
+					  //System.out.println("we are here");
+				  }else{
+					
+					  sendPacket = new DatagramPacket(message,message.length,InetAddress.getLocalHost(),69);
+					
+				  }
+			  }
+			  catch(UnknownHostException e)
+			  {
+				  e.printStackTrace();
+				  System.exit(1);
+			  }
 			
 			
 			
-			try
-			{
-				sendReceiveSocket.receive(receivePacket);
-			}
-			catch(IOException e)
-			{
-				e.printStackTrace();
-				System.exit(1);
-			}
+			  send(sendPacket);
 			
-			// Receive Packet info
-			System.out.println("Client received packet");
-			System.out.println("Sent from Host: " + receivePacket.getAddress());
-			System.out.println(" using port: " + receivePacket.getPort());
-			int length2 = receivePacket.getLength();
-			System.out.println("Length: " + length2);
-			System.out.println("Packet: ");
 			
-			for(int k = 0; k<receivePacket.getData().length;k++)
-			{
-				System.out.print(" " + receivePacket.getData()[k]);
-			}
 			
-			byte[] compWrite = new byte[] {0,3,0,1};
+			  //Send Packet info
 			
-			if(receivePacket.getData() == compWrite)
-			{
-				System.out.println("files match");
+			  if(quiet == false){
 				
-			}
+				  System.out.println("Sending: " + request + " Request");
+			      System.out.println("Host: " + sendPacket.getAddress());
+			      System.out.println("Destination Port: " + sendPacket.getPort());
+			      System.out.println("File Name: " + fileName);
+			      System.out.println("Mode: " + mode);
+			
+			      int length1 = os3 + 1;
+			      System.out.println("Length: " + length1);
+			      String info = new String(message,0,length1);
+			      System.out.println("String : " + info);
+			      System.out.println("Bytes : " + Arrays.toString(message));
+			  }
+			
+			  // receive packet
+			
+			
+			
+			  try
+			  {
+				  sendReceiveSocket.receive(receivePacket);
+			  }
+			  catch(IOException e)
+			  {
+				  e.printStackTrace();
+				  System.exit(1);
+			  }
+			
+			  if(quiet == false){
+				
+				  // Receive Packet info
+				  System.out.println("Client received packet");
+				  System.out.println("Sent from Host: " + receivePacket.getAddress());
+				  System.out.println(" using port: " + receivePacket.getPort());
+				  int length2 = receivePacket.getLength();
+				  System.out.println("Length: " + length2);
+				  System.out.println("Packet: ");
+			  }
+			
+			  for(int k = 0; k<receivePacket.getData().length;k++)
+			  {
+				  System.out.print(" " + receivePacket.getData()[k]);
+			  }
+			
+			  byte[] compWrite = new byte[] {0,3,0,1};
+			
+			  if(receivePacket.getData() == compWrite)
+			  {
+				  System.out.println("files match");
+				
+			  }
+			
+			  if(receivePacket.getData()[1] == 0x04){
+				  try {
+					  sendData(fileName);
+					  System.out.println("we are here");
+				  } catch (FileNotFoundException e) {
+					
+				      e.printStackTrace();
+				  } catch (IOException e) {
+					
+					  e.printStackTrace();
+				  }
+			  }
+		  }
+		
 		}
-		
+		System.out.println("Would you like to kill the client? (k to kill, any other key to keep running)");
+		try{
+			BufferedReader bufferRead = new BufferedReader(new InputStreamReader(System.in));
+	        String inputString = bufferRead.readLine();
+	        
+	        if(inputString.equals("k"))
+	        	System.exit(0);
+	        
+		}catch(IOException ex){
+        	
+            ex.printStackTrace();
+      
+        }
 	}
-	public void send(DatagramPacket sendPacket)
+	public void send(DatagramPacket sP)
 	{
+		
+		System.out.println(receivePacket.getPort()+ " port we r sending to");
 		
 		try
 		{
-			sendReceiveSocket.send(sendPacket);
+			sendReceiveSocket.send(sP);
 		}
 		catch(IOException e)
 		{
@@ -204,7 +353,11 @@ public class Client
 	{
 		try
 		{
+			System.out.println("we are receiving at \n\n" + sendReceiveSocket.getLocalPort() + "\n\n");
 			sendReceiveSocket.receive(receivePacket);
+			System.out.println("We have received");
+			
+			
 		}
 		catch(IOException e)
 		{
@@ -217,8 +370,9 @@ public class Client
     public void sendData(String name)
     	throws FileNotFoundException, IOException
         {
-		// determines if final packet to be sent has 0 data bytes (ie file was multiple of 512 bytes in length)
-    	    boolean isLastZero = true;
+    	
+    	    sendPacket.setPort(receivePacket.getPort());
+            System.out.println("\n hi " + sendPacket.getPort());
     	    int packNum = 0;
             BufferedInputStream in = new BufferedInputStream(new FileInputStream("test.txt"));
 		
@@ -250,7 +404,6 @@ public class Client
           // if end of data from file is null then the remaining part of the file was under 512 bytes
             	if (fdata[511] == 0x00)
 		{
-			isLastZero = false;
             	        // resized array to match the remaining bytes in file (from 512 to < 512)
             	        byte[] lastData = resize(fdata);
             	        System.out.println(lastData[3]);
@@ -276,7 +429,7 @@ public class Client
 		{
             	// if file is sending 512 bytes for data
             	System.arraycopy(fdata, 0, pack, 4, fdata.length);
-            	createPack(fdata);
+            	createPack(pack);
             	
             	a = pack[2];
             	b = pack[3];
@@ -285,26 +438,17 @@ public class Client
             	}
             	System.out.println(a + ", " + b);
 
-            	
-            	
+            	for (int i = 0; i < pack.length; i++){
+            		System.out.print(" " + pack[i]);
+            	}
+            	System.out.println( "\n \n" + sendPacket.getData()[1] + " 2nd byte of data being sent");
             	send(sendPacket);
             	re(fdata);
-            	//receive();
+            	System.out.println("Reaching receive");
+            	receive();
             	
             }
-		if (isLastZero == true)////////////////////////////////////////////////////////////////
-            {
-            	    System.out.println("file is empty sending empty packet");
-            		byte[] zeroPack = new byte[4];
-            		zeroPack[0] = 0x00;
-            		zeroPack[1] = 0x03;
-            		zeroPack[3] = (byte) (packNum & 0xFF);
-            		zeroPack[2] = (byte) ((packNum >> 8) & 0xFF); 
-            		createPack(zeroPack);
-            		send(sendPacket);
-            	
-            }
-
+            System.out.println("Leaving Send Data");
             in.close();
         }
 	
@@ -340,7 +484,7 @@ public class Client
 	{
 
 		Client c = new Client();
-		//c.ClientAlgorithm();
+		c.ClientAlgorithm();
 		try 
 		{
 			c.sendData("test.txt");

@@ -204,13 +204,13 @@ public class Server implements Runnable
     
     public void sendAck()
     {
-    	int packNum = 0;
+    	
     	byte[] pack = new byte[4];
     	
     	pack[0] = 0;
     	pack[1] = 4;
-    	pack[3] = (byte) (packNum & 0xFF);
-        pack[2] = (byte) ((packNum >> 8) & 0xFF);
+    	pack[3] = (byte) (receivePacket.getData()[3] & 0xFF);
+        pack[2] = (byte) ((receivePacket.getData()[2] >> 8) & 0xFF);
 
         sendPacket = new DatagramPacket(pack,pack.length,receivePacket.getAddress(), receivePacket.getPort());
     }
@@ -251,18 +251,20 @@ public class Server implements Runnable
 		// Determine Read or write
 		String requestType = "";
 		
+		System.out.println(receivePacket.getData()[1]);
+		
 			// DATA packet formed if READ
 			if (receivePacket.getData()[1] == 0x01)
 			{
 				requestType = "Read request";
 			}
 			// ACK packet formed if WRITE
-			if(receivePacket.getData()[1] ==  0x02)
+			else if(receivePacket.getData()[1] ==  0x02)
 			{
 				requestType = "Write request";
 			}
 			// If a data packet is received
-			if(receivePacket.getData()[1] ==  0x03)
+			else if(receivePacket.getData()[1] ==  0x03)
 			{
 				requestType = "Data packet";
 			}
@@ -286,19 +288,20 @@ public class Server implements Runnable
 		Boolean isValidRequest = false;
 		// Amount of zero bytes in the request
 		int count = 0;
+		
 		for(int i = 2; i < request.length; i++)
 		{				
-			if(request[i] == 0)
+			if(receivePacket.getData()[i] == 0)
 			{
 				// Extract data
 				count++;
 				if (count == 1)
 				{
-					file = Arrays.copyOfRange(request, 2, i);
+					file = Arrays.copyOfRange(receivePacket.getData(), 2, i);
 				}
 				if(count == 2)
 				{
-					mode = Arrays.copyOfRange(request, 3 + file.length, i);
+					mode = Arrays.copyOfRange(receivePacket.getData(), 3 + file.length, i);
 					isValidRequest = true;
 					break;
 				}
@@ -330,10 +333,10 @@ public class Server implements Runnable
 		int len = file.length + mode.length + 4;
 		System.out.println("Length: " + len);
 		
-		String infoStr = new String(request, 0, fileStr.length() + modeStr.length() + 4);
+		String infoStr = new String(receivePacket.getData(), 0, fileStr.length() + modeStr.length() + 4);
 		System.out.println("Information as String: " + infoStr);
 
-		String requestStr = Arrays.toString(Arrays.copyOfRange(request, 0, len));
+		String requestStr = Arrays.toString(Arrays.copyOfRange(receivePacket.getData(), 0, len));
 		System.out.println("Information as Bytes: "+ requestStr + "\n");
 		
 		// form the packet to be sent back to the client
@@ -415,7 +418,15 @@ public class Server implements Runnable
     	sendAck();
     	send(sendPacket);
     	
-    	receive();
+    	try
+		{
+			sendSocket.receive(receivePacket);
+		}
+		catch(IOException e)
+		{
+			e.printStackTrace();
+			System.exit(1);
+		}
     	
     	byte[] temp = new byte[512];
     	receivePacket = new DatagramPacket(temp, temp.length);
@@ -448,6 +459,9 @@ public class Server implements Runnable
 			System.exit(1);
 		}
 		
+    	
+    	
+    	
     }
 	
 	public void printServerDir()

@@ -255,6 +255,8 @@ public class Server implements Runnable
 		else if(requestType.equals("Data packet"))
 		{
 			pack[1] = 4;
+			String temp = "test.txt";
+			file = temp.getBytes();
 			handleWrite(file);
 		}
 		// Invalid request

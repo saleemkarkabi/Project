@@ -13,7 +13,7 @@ import java.net.*;
 import java.util.Arrays;
 
 /**
-* DONT FORGET TO COMMENT HERE 
+* Error Simulator currently acts as a relay to send and receive datagrampackets from the Client and Server
 **/
 
 public class ErrorSimulator 

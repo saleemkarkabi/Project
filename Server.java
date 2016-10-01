@@ -1,4 +1,5 @@
-* Project Server class
+/**
+ * Project Server class
  * SYSC 3303 L2
  * Andrew Ward, Alex Hoecht, Connor Emery, Robert Graham, Saleem Karkabi
  * 100898624,   100933730,   100980809,    100981086,     100944655
@@ -338,81 +339,90 @@ public class Server implements Runnable
     }
     	
 	
-    public void sendData(String name) throws FileNotFoundException, IOException
-    {
-    	int packNum = 0;
-    	
-    	BufferedInputStream in = new BufferedInputStream(new FileInputStream(name));
+    public void sendData(String name)
+        	throws FileNotFoundException, IOException
+            {
+        	
+        	    //sendPacket.setPort(receivePacket.getPort());
+                //System.out.println("\n hi " + sendPacket.getPort());
+        	    int packNum = 0;
+                BufferedInputStream in = new BufferedInputStream(new FileInputStream("test.txt"));
     		
-        //bytes from file
-        byte[] fdata = new byte[512];
+                //bytes from file
+                byte[] fdata = new byte[512];
     		
-        //op code and block # + fdata
-        byte[] pack = new byte[516];
+                //op code and block # + fdata
+                byte[] pack = new byte[516];
     		
-        // used for cycling through file
-        int n;
+                // used for cycling through file
+                int n;
     		
-        // a and b used for printing packet number without negatives
-        int a;
-        int b;
+                // a and b used for printing packet number without negatives
+                int a;
+                int b;
     		
-        // data requests are op code 0 3
-        pack[0] = 0;
-        pack[1] = 3; 
+                // data requests are op code 0 3
+                pack[0] = 0;
+                pack[1] = 3; 
     		
-        // while loop cycles through data in file 512 bytes at a time
-        while ((n = in.read(fdata)) != -1)
-        {
-        	//setting bytes for packet number converting from int to 2 bytes
-            pack[3] = (byte) (packNum & 0xFF);
-            pack[2] = (byte) ((packNum >> 8) & 0xFF); 
-            packNum ++;
+                // while loop cycles through data in file 512 bytes at a time
+                while ((n = in.read(fdata)) != -1)
+    	    {
+                	//setting bytes for packet number converting from int to 2 bytes
+                	pack[3] = (byte) (packNum & 0xFF);
+                	pack[2] = (byte) ((packNum >> 8) & 0xFF); 
+                	packNum ++;
     		    
-            // if end of data from file is null then the remaining part of the file was under 512 bytes
-            if (fdata[511] == 0x00)
+              // if end of data from file is null then the remaining part of the file was under 512 bytes
+                	if (fdata[511] == 0x00)
     		{
-            	// resized array to match the remaining bytes in file (from 512 to < 512)
-                byte[] lastData = resize(fdata);
-                System.out.println(lastData[3]);
+                	        // resized array to match the remaining bytes in file (from 512 to < 512)
+                	        byte[] lastData = resize(fdata);
+                	        System.out.println(lastData[3]);
     			
-                System.out.println("data not 512 bytes");
-                System.out.println("Size of this is array is: " + lastData.length);
+                		System.out.println("data not 512 bytes");
+                		System.out.println("Size of this is array is: " + lastData.length);
     			
-                // copies file data behind opcode and packet number
-                System.arraycopy(lastData, 0, pack, 4, lastData.length);
+                		// copies file data behind opcode and packet number
+                		System.arraycopy(lastData, 0, pack, 4, lastData.length);
     			
-                // resizes final array from 516 to 4 + remaining data from file
-                byte[] lastPack = resize(pack);
+                		// resizes final array from 516 to 4 + remaining data from file
+                		byte[] lastPack = resize(pack);
     			
-                // creates final packet
-                sendPacket = new DatagramPacket(lastPack,lastPack.length,receivePacket.getAddress(), receivePacket.getPort());
-                
-                a = lastPack[2];
-                b = lastPack[3];
-                a &= 0xFF;
-                b &= 0xFF;
-                System.out.println(lastPack[4]);
-            }
-            else
+                		// creates final packet
+                		createPack(lastPack);
+                		a = lastPack[2];
+                    	b = lastPack[3];
+                    	a &= 0xFF;
+                    	b &= 0xFF;
+                    	System.out.println(lastPack[4]);
+                	}
+                	else
     		{
-                // if file is sending 512 bytes for data
-                System.arraycopy(fdata, 0, pack, 4, fdata.length);
-                
-                sendPacket = new DatagramPacket(fdata,fdata.length,receivePacket.getAddress(), receivePacket.getPort());
+                	// if file is sending 512 bytes for data
+                	System.arraycopy(fdata, 0, pack, 4, fdata.length);
+                	createPack(pack);
                 	
-                a = pack[2];
-                b = pack[3];
-                a &= 0xFF;
-                b &= 0xFF;
+                	a = pack[2];
+                	b = pack[3];
+                	a &= 0xFF;
+                	b &= 0xFF;
+                	}
+                	System.out.println(a + ", " + b);
+
+                	for (int i = 0; i < pack.length; i++){
+                		System.out.print(" " + pack[i]);
+                	}
+                	System.out.println( "\n \n" + sendPacket.getData()[1] + " 2nd byte of data being sent");
+                	send(sendPacket);
+                	re(fdata);
+                	System.out.println("Reaching receive");
+                	//receive();
+                	
+                }
+                System.out.println("Leaving Send Data");
+                in.close();
             }
-            System.out.println(a + ", " + b);
-         	re(fdata);
-         	
-         	receive();
-        }
-        in.close();
-    }
     
     public void sendAck()
     {

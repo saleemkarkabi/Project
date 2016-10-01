@@ -286,6 +286,7 @@ public class Server implements Runnable
     	
     	// Create the file to be added to the directory
     	File receivedFile = new File(serverDir,fileName);
+    	
     	if(!receivedFile.exists())
     	{
     		boolean fileAdded = false;
@@ -303,6 +304,7 @@ public class Server implements Runnable
     		if(fileAdded)
     		{
     			System.out.println("Received file created in the server directory.");
+    			System.out.println("File: " + receivedFile.toString());
     		}
     	}
     	
@@ -321,7 +323,6 @@ public class Server implements Runnable
     			//e.printStackTrace();
     			//System.exit(1);
     		//}
-    		
     		appendToFile(receivedFile, receivePacket.getData());
     		
     		//if(receivePacket.getData().length < 512)
@@ -455,34 +456,31 @@ public class Server implements Runnable
     public void appendToFile(File f, byte[] byteData)
     {
     	//////////////////////////////////////////////////////////////////////////
-    	String filePath = "C:/Users/alexh/Desktop/school/Carleton/Year 4/Sysc 3303/GroupProject";
-    		
+    	String filePath = "C:/Users/alexh/Desktop/school/Carleton/Year 4/Sysc 3303/GroupProject/";
     	try
-    		{
-    			String stringData = new String(byteData);
+    	{
+    		String stringData = new String(byteData);
 
-    			File file = new File(filePath + f);
+    		File file = new File(filePath + f);
 
-    			// If file does not exists, then create it
-    			//if (!file.exists())
-    			//{
-    				//file.createNewFile();
-    			//}
+    		System.out.println(file.getAbsolutePath().toString());
+    		// If file does not exists, then create it
+    		//if (!file.exists())
+    		//{
+    			//file.createNewFile();
+    		//}
 
-    			String s = new String(byteData);
-    			System.out.println(s);
-    			System.out.println(f.toString());
-    			
-    			FileWriter fw = new FileWriter(file.getAbsoluteFile(), true);
-    			BufferedWriter bw = new BufferedWriter(fw);
-    			bw.write(stringData);
-    			bw.close();
-    		}
-    		catch (IOException e)
-    		{
-    			e.printStackTrace();
-    		}
+    		FileWriter fw = new FileWriter(file.getAbsolutePath(),true);
+    		BufferedWriter bw = new BufferedWriter(fw);
+    		bw.write(stringData);
+    		bw.close();
     	}
+    	catch (IOException e)
+    	{
+    		e.printStackTrace();
+    	}
+    	}
+    		
     
 	public void printServerDir()
 	{

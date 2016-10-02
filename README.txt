@@ -9,17 +9,26 @@ Contains the following files:
 Client.java - Read/Write/Invalid requests
 ErrorSimulator.java - Transfers requests between Client and Server
 Server.java - Creates ACK's to Read/Write/Invalid requests
-InputChecker.java - implements a "nice" way to kill the thread
+InputChecker.java - Used to stop the server from running
 UML collaboration diagrams for the above classes
 UCM Diamgram of the entire system
 UML Diagrams for each class
 
 How to Run the project
-0. Run the program as a Java Application
-1. Compile and Run the Server.java file
-2. Compile and Run the ErrorSimulator.java file
-3. Compile and Run the Client.java file 
-4. Observe the program as it executes 
+0. Set a project file path in the Server Class using file explorer (May need to change \'s to /'s, path must end with /)
+1.Run the program as a Java Application
+2.Compile and Run the Server.java file
+3.Compile and Run the ErrorSimulator.java file
+4.Compile and Run the Client.java file 
+5.Choose Normal Mode then Verbose Mode
+6. ****Client must write to Server first****
+7. use test.txt as filename
+8. Client will then write file to a Server Directory (Currently only works for files <512. files > 512 will be added in iteration 2)
+9. The file will then be available to be read.
+
+****NOTICE****
+The Read from the Server currently does not work but it is being worked on and will be finished
+
 
 Project Responsibilities
 

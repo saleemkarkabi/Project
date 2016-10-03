@@ -13,7 +13,7 @@ import java.io.*;
 
 
 
-public class Client 
+public class client 
 {
 	
 	private DatagramSocket sendReceiveSocket;
@@ -23,8 +23,10 @@ public class Client
 	private byte[] message;
 	private boolean quiet;
 	private boolean normal;
+	private File clientDir;
+	private int portNum;
 	
-	public Client()
+	public client()
 	{
 		// create DatagramSocket to use to both send and receive
 		try
@@ -43,6 +45,21 @@ public class Client
 		
 		byte[] data = new byte[4];
 		receivePacket = new DatagramPacket(data,data.length);
+		
+		clientDir = new File("Client Directory");
+		// If the directory doesnt already exist, create it
+		if(!clientDir.exists())
+		{
+			try
+			{
+			//If the directory is successfully created
+				clientDir.mkdir();
+			}
+			catch(SecurityException se)
+			{
+				System.exit(1);
+			}
+		}
 	}
 	/**
 	 * Algorithm for Client 
@@ -52,7 +69,7 @@ public class Client
 	{
 		try
 		{
-			sendPacket = new DatagramPacket(packet,packet.length,InetAddress.getLocalHost(),69);
+			sendPacket = new DatagramPacket(packet,packet.length,InetAddress.getLocalHost(),portNum);
 		}
 		catch(UnknownHostException e)
 		{
@@ -61,6 +78,89 @@ public class Client
 		}
     	
 	}
+	
+	 public void appendToFile(File f, byte[] byteData)
+	    {
+	    	//////////////////////////////////////////////////////////////////////////
+	    	String filePath = "C:/Users/conno_000/Documents/Sysc_2100/TFTPv1/client Directory/";
+	    	try
+	    	{
+	    		String stringData = new String(byteData);
+
+	    		File file = new File(filePath + f);
+
+	    		System.out.println(file.getAbsolutePath().toString());
+	    		// If file does not exists, then create it
+	    		//if (!file.exists())
+	    		//{
+	    			//file.createNewFile();
+	    		//}
+
+	    		FileWriter fw = new FileWriter(file.getAbsolutePath(),true);
+	    		BufferedWriter bw = new BufferedWriter(fw);
+	    		bw.write(stringData);
+	    		bw.close();
+	    	}
+	    	catch (IOException e)
+	    	{
+	    		e.printStackTrace();
+	    	}
+	    	}
+	    		
+	
+	public void handleWrite(byte[] f)
+    {
+    	// Convert the received file name back into a string
+    	String fileName = new String(f);
+    	
+		// Create the file to be added to the directory
+    	File receivedFile = new File(clientDir,fileName);
+    	
+    	if(!receivedFile.exists())
+    	{
+    		boolean fileAdded = false;
+    		try
+    		{
+    			// Create if the file doesn't already exist
+    			receivedFile.createNewFile();
+    			fileAdded = true;
+    		} 
+    		catch (IOException e) 
+    		{
+    			e.printStackTrace();
+    			System.exit(1);
+    		}
+    		if(fileAdded)
+    		{
+    			System.out.println("Received file created in the server directory.");
+    			System.out.println("File: " + receivedFile.toString());
+    		}
+    	}
+    	
+    	send(sendPacket);
+    	//boolean fileEnd = false;
+		//while(!fileEnd)
+    	//{
+    		//try
+    		//{
+    			//sendSocket.receive(receivePacket);
+    		//}
+    		//catch(IOException e)
+    		//{
+    			//e.printStackTrace();
+    			//System.exit(1);
+    		//}
+    		appendToFile(receivedFile, receivePacket.getData());
+    		
+    		//if(receivePacket.getData().length < 512)
+    		//{
+    			//fileEnd = true;
+    		//}
+    		
+        	//send(sendPacket);
+    }
+    	//}
+    	//System.out.print("Leaving data loop");
 
 	public void ClientAlgorithm()
 	{
@@ -84,12 +184,14 @@ public class Client
 	                 System.out.println("\nWe are now in test mode\n");
 	                 tOrN = 1;
 	                 normal = false;
+	                 portNum = 23;
 	              
 	              }else if(inputString.equals("2")){
 	            	
 	        	     System.out.println("\nWe are now in normal mode\n");
 	        	     tOrN = 2;
 	        	     normal = true;
+	        	     portNum = 69;
 	        	  
 	              }else{
 	            	
@@ -152,15 +254,20 @@ public class Client
 			    BufferedReader bufferRead = new BufferedReader(new InputStreamReader(System.in));
 	            String inputString = bufferRead.readLine();
 	            
+	            
+	            
 			    if(inputString.equals("read"))
 			    {
 				    message[1] =1;
 				    request = "Read"; // read request
+				    //handleWrite(file);
 			    }
 			    else if(inputString.equals("write"))
 			    {
 				    message[1]=2;
 				    request = "Write"; // write request
+				    
+				    
 			    }
 			    else
 			    {
@@ -174,6 +281,36 @@ public class Client
 	                  ex.printStackTrace();
 	          
 	           }
+			  
+			  byte[] file = new byte[0];
+				// Transfer mode
+				byte[] mode = new byte[0];
+				//Boolean isValidRequest = false;
+				// Amount of zero bytes in the request
+				int count = 0;
+				
+				///////////// ADDED THIS IF CONDITION
+				if(request.equals("Read")) 
+				{
+				for(int i = 2; i < request.length(); i++)
+				{				
+					if(receivePacket.getData()[i] == 0)
+					{
+						// Extract data
+						count++;
+						if (count == 1)
+						{
+							file = Arrays.copyOfRange(receivePacket.getData(), 2, i);
+						}
+						if(count == 2)
+						{
+							mode = Arrays.copyOfRange(receivePacket.getData(), 3 + file.length, i);
+							//isValidRequest = true;
+							break;
+						}
+					}	
+				}
+				}
 			
 			  System.out.print("what is the name of your file? ");
 			
@@ -195,9 +332,9 @@ public class Client
 			if (request.equals("read")){
 			  try
 			  {
-				  File file = new File(fileName);
+				  File file1 = new File(fileName);
 				
-				  if(file.createNewFile())
+				  if(file1.createNewFile())
 				  {
 					  System.out.println("File is created");
 				  }
@@ -216,10 +353,9 @@ public class Client
 			  System.arraycopy(fileNameToBytes, 0, message, 2, os1);
 			  message[os1 + 2] = 0;
 			
-			  byte[] modeToBytes = mode.getBytes();
-			  int os2 = modeToBytes.length;
+			  int os2 = mode.length;
 			
-			  System.arraycopy(modeToBytes, 0, message, os1 + 3, os2);
+			  System.arraycopy(mode, 0, message, os1 + 3, os2);
 			  int os3 = os1 + os2 + 3;
 			  message[os3] = 0;
 			
@@ -296,17 +432,22 @@ public class Client
 			  }
 			
 			  byte[] compWrite = new byte[] {0,3,0,1};
+			  
+			  byte[] trying = "why not.txt".getBytes();
 			
 			  if(receivePacket.getData() == compWrite)
 			  {
+				  
 				  System.out.println("files match");
 				
 			  }
 			
+			  
 			  if(receivePacket.getData()[1] == 0x04){
 				  try {
 					  sendData(fileName);
 					  System.out.println("we are here");
+					  handleWrite(trying);
 				  } catch (FileNotFoundException e) {
 					
 				      e.printStackTrace();
@@ -314,6 +455,8 @@ public class Client
 					
 					  e.printStackTrace();
 				  }
+			  }else{
+				  
 			  }
 		  }
 		
@@ -327,6 +470,7 @@ public class Client
 	        	System.exit(0);
 	        
 		}catch(IOException ex){
+			
         	
             ex.printStackTrace();
       
@@ -446,6 +590,7 @@ public class Client
             	re(fdata);
             	System.out.println("Reaching receive");
             	receive();
+            	System.out.println( "\n \n" + receivePacket.getData() + " 2nd byte of data being sent");
             	
             }
             System.out.println("Leaving Send Data");
@@ -483,7 +628,7 @@ public class Client
 	public static void main(String[] args) 
 	{
 
-		Client c = new Client();
+		client c = new client();
 		c.ClientAlgorithm();
 		try 
 		{

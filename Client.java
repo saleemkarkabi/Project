@@ -21,10 +21,15 @@ public class Client
 	private String fileName;	
 	private String mode;
 	private byte[] message;
+	private byte[] opNum = new byte[4];
 	private boolean quiet;
 	private boolean normal;
 	private File clientDir;
 	private int portNum;
+	
+	// Size of the Packet being sent back to the client
+	private byte[] sendPacketSize;
+	private byte[] receivePacketSize;
 	
 	public Client()
 	{
@@ -42,9 +47,6 @@ public class Client
 		
 		mode = "ocTEt".toLowerCase();
 		fileName = "stupud.txt";		// LMAO
-		
-		byte[] data = new byte[4];
-		receivePacket = new DatagramPacket(data,data.length);
 		
 		clientDir = new File("Client Directory");
 		// If the directory doesnt already exist, create it
@@ -162,14 +164,17 @@ public class Client
 			    {
 				    message[1] =1;
 				    request = "Read"; // read request
-				    //handleWrite(file);
+					// If we give a Read request, we will send ACK packets and receive DATA packets
+					sendPacketSize = new byte[4];
+					receivePacketSize = new byte[516];
 			    }
 			    else if(inputString.equals("write"))
 			    {
 				    message[1]=2;
 				    request = "Write"; // write request
-				    
-				    
+				 // If we give a Write request, we will send DATA packets and receive ACK packets
+				    sendPacketSize = new byte[516];
+					receivePacketSize = new byte[4];  
 			    }
 			    else
 			    {
@@ -183,6 +188,8 @@ public class Client
 	                  ex.printStackTrace();
 	          
 	           }
+			  
+			  receivePacket = new DatagramPacket(receivePacketSize, receivePacketSize.length);
 			  
 	
 			  System.out.print("what is the name of your file? ");
@@ -202,27 +209,7 @@ public class Client
 			
 			  byte[] fileNameToBytes = fileName.getBytes();
 			  int os1 = fileNameToBytes.length;
-			if (request.equals("read")){
-			  try
-			  {
-				  File file1 = new File(fileName);
-				
-				  if(file1.createNewFile())
-				  {
-					  System.out.println("File is created");
-				  }
-				  else
-				  {
-					  System.out.println("File already exists.");
-				  }
-				
-			  }
-			
-			  catch (IOException e)
-			  {
-				  e.printStackTrace();
-			  }
-			}
+			  
 			  System.arraycopy(fileNameToBytes, 0, message, 2, os1);
 			  message[os1 + 2] = 0;
 			
@@ -240,8 +227,9 @@ public class Client
 					
 					  sendPacket = new DatagramPacket(message,message.length,InetAddress.getLocalHost(),23);
 					  //System.out.println("we are here");
-				  }else{
-					
+				  }
+				  else
+				  {
 					  sendPacket = new DatagramPacket(message,message.length,InetAddress.getLocalHost(),69);
 					
 				  }
@@ -251,7 +239,6 @@ public class Client
 				  e.printStackTrace();
 				  System.exit(1);
 			  }
-			
 			
 			
 			  send(sendPacket);
@@ -306,25 +293,12 @@ public class Client
 			  
 			  System.out.println();
 			
-			 /* byte[] compWrite = new byte[] {0,3,0,1};
-			  
-			  byte[] trying = "why not.txt".getBytes();
-			
-			  if(receivePacket.getData() == compWrite)
-			  {
-				  
-				  System.out.println("files match");
-				
-			  }
-			
-			  */
 			  if(receivePacket.getData()[1] == 0x04)
 			  {
 				  try 
 				  {
 					  sendData(fileName);
 					  System.out.println("we are here");
-					  //handleWrite(trying);
 				  } 
 				  catch (FileNotFoundException e) 
 				  {
@@ -336,8 +310,10 @@ public class Client
 					
 					  e.printStackTrace();
 				  }
-			  }else{
-				  
+			  }
+			  else if(receivePacket.getData()[1] == 0x03)
+			  {
+				  waitForData();
 			  }
 		  }
 		
@@ -357,22 +333,50 @@ public class Client
 	
 	    }
 	}
+	
+
+	public void fileCreation(byte[] f)
+	{
+		// Convert the received file name back into a string
+		String fileName = new String(f);
+		// Create the file to be added to the directory
+		File receivedFile = new File(clientDir,fileName);
+		
+		// If the file does not exist in the client directory
+		if(!receivedFile.exists())
+		{
+			boolean fileAdded = false;
+			try
+			{
+				// Create if the file doesn't already exist
+				receivedFile.createNewFile();
+				fileAdded = true;
+			} 
+			catch (IOException e) 
+			{
+				e.printStackTrace();
+				System.exit(1);
+			}
+			if(fileAdded)
+			{
+				System.out.println("Received file created in the server directory.");
+				System.out.println("File: " + receivedFile.toString());
+			}
+		}
+		
+		//appendToFile(receivedFile, receivePacket.getData());
+	}
 	public void appendToFile(File f, byte[] byteData)
 	{
 		//////////////////////////////////////////////////////////////////////////
-		String filePath = "C:/Users/conno_000/Documents/Sysc_2100/TFTPv1/client Directory/";
+		String filePath = "M:/workspace/SYSC3303_CLIENTSERVER/Client Directory/";
 		try
 		{
-			String stringData = new String(byteData);
+			String stringData = new String(resize(byteData));
 	
 			File file = new File(filePath + f);
 	
 			System.out.println(file.getAbsolutePath().toString());
-			// If file does not exists, then create it
-			//if (!file.exists())
-			//{
-				//file.createNewFile();
-			//}
 	
 			FileWriter fw = new FileWriter(file.getAbsolutePath(),true);
 			BufferedWriter bw = new BufferedWriter(fw);
@@ -383,7 +387,7 @@ public class Client
 		{
 			e.printStackTrace();
 		}
-		}
+	}
 
 	/**
 	 * Algorithm for Client 
@@ -403,61 +407,7 @@ public class Client
     	
 	}
 	
-	 public void handleWrite(byte[] f)
-    {
-    	// Convert the received file name back into a string
-    	String fileName = new String(f);
-    	
-		// Create the file to be added to the directory
-    	File receivedFile = new File(clientDir,fileName);
-    	
-    	if(!receivedFile.exists())
-    	{
-    		boolean fileAdded = false;
-    		try
-    		{
-    			// Create if the file doesn't already exist
-    			receivedFile.createNewFile();
-    			fileAdded = true;
-    		} 
-    		catch (IOException e) 
-    		{
-    			e.printStackTrace();
-    			System.exit(1);
-    		}
-    		if(fileAdded)
-    		{
-    			System.out.println("Received file created in the server directory.");
-    			System.out.println("File: " + receivedFile.toString());
-    		}
-    	}
-    	
-    	send(sendPacket);
-    	//boolean fileEnd = false;
-		//while(!fileEnd)
-    	//{
-    		//try
-    		//{
-    			//sendSocket.receive(receivePacket);
-    		//}
-    		//catch(IOException e)
-    		//{
-    			//e.printStackTrace();
-    			//System.exit(1);
-    		//}
-    		appendToFile(receivedFile, receivePacket.getData());
-    		
-    		//if(receivePacket.getData().length < 512)
-    		//{
-    			//fileEnd = true;
-    		//}
-    		
-        	//send(sendPacket);
-    }
-    	//}
-    	//System.out.print("Leaving data loop");
-
-	public void send(DatagramPacket sP)
+	 public void send(DatagramPacket sP)
 	{
 		
 		System.out.println(receivePacket.getPort()+ " port we r sending to");
@@ -490,6 +440,34 @@ public class Client
 			System.exit(1);
 		}
 		
+	}
+	
+	public void handleRead(byte[] data) 
+	{
+		
+		System.arraycopy(receivePacket.getData(), 0, opNum, 0, 4);
+		File tempFile = new File(fileName);
+		byte[] writeData = cutOP(receivePacket.getData());
+		appendToFile(tempFile, writeData);
+		sendAck(opNum);
+	}
+	
+	public void waitForData()
+	{
+		System.out.println("Client is waiting to receive a data packet");
+		
+		//receive();
+		
+		while(receivePacket.getData()[515] != (byte) 0)
+		{
+			handleRead(receivePacket.getData());
+			System.out.println("data packet has been writen to file");
+			sendAck(opNum);
+			receive();
+		}
+		
+		handleRead(receivePacket.getData());
+		System.out.println("final data packet has been writen to file");
 	}
 	
     public void sendData(String name)
@@ -605,6 +583,47 @@ public class Client
     	
     	return data;
     }
+    
+ // removes opcode from datagram packet
+    public byte[] cutOP (byte[] data)
+    {
+    	byte[] temp = new byte[data.length];
+    	int j = 0;
+    	for(int i = 4; i < data.length; i++)
+    	{
+    		temp[j] = data[i];
+    		j++;
+    	}
+    	return temp;
+    } 
+    
+    public void sendAck (byte[] code)
+	{
+    	code[1] = (byte) 4;
+    	sendPacket.setPort(receivePacket.getPort());
+		sendPacket.setData(code);
+		System.out.println("Server sent ACK packet");
+		System.out.println("To Host: " + sendPacket.getAddress());
+		System.out.println("Destination host port: " + sendPacket.getPort());
+		System.out.print("Response Packet: ");
+		
+		for(int k = 0; k<opNum.length;k++)
+		{
+			System.out.print(" " + opNum[k]);
+		}
+		
+		System.out.println();
+		
+		try 
+		{
+			sendReceiveSocket.send(sendPacket);
+		} 
+		catch (IOException e) 
+		{
+			e.printStackTrace();
+			System.exit(0);
+		}
+	}
     
 	public static void main(String[] args) 
 	{

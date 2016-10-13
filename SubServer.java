@@ -102,12 +102,22 @@ public class SubServer implements Runnable {
 		// If read request
 		else if(data[1] == 1)
 		{
-			// HANDLE READ REQUEST STUFFFFF
+			try 
+			{
+				handleRead(fileName);
+			}
+			catch (IOException e) 
+			{
+				e.printStackTrace();
+				System.exit(0);
+			}
 		}
 		else
 		{
 			// ERROR REQUEST REACHED
 		}
+		
+		
 		subServerSocket.close();		
 	}
 	
@@ -220,26 +230,6 @@ public class SubServer implements Runnable {
 	}
 	
 	
-	public void waitForData()
-	{
-		System.out.println("Server is waiting to receive a data packet");
-		
-		receive();
-		
-		while(receivePacket.getData()[515] != (byte) 0)
-		{
-			handleWrite(receivePacket.getData());
-			System.out.println("data packet has been writen to file");
-			receive();
-		}
-		
-		handleWrite(receivePacket.getData());
-		System.out.println("final data packet has been writen to file");
-		// Reset the packet counter
-		packetCounter = 0;
-	}
-	
-	
 	public void receive(){
 		try 
 		{
@@ -263,6 +253,26 @@ public class SubServer implements Runnable {
 	}
 	
 	
+	public void waitForData()
+	{
+		System.out.println("Server is waiting to receive a data packet");
+		
+		receive();
+		
+		while(receivePacket.getData()[515] != (byte) 0)
+		{
+			handleWrite(receivePacket.getData());
+			System.out.println("data packet has been writen to file");
+			receive();
+		}
+		
+		handleWrite(receivePacket.getData());
+		System.out.println("final data packet has been writen to file");
+		// Reset the packet counter
+		packetCounter = 0;
+	}
+
+
 	public void handleWrite(byte[] f)
     {
     	packetCounter++;
@@ -273,6 +283,113 @@ public class SubServer implements Runnable {
     	sendAck(opNum);
     }
 	
+	
+	public void handleRead(String readFile) throws IOException
+	{
+		// First check to see if the requested file exists
+		// Create the file to be added to the directory
+    	File tempFile = new File(readFile);
+    	
+    	if(!tempFile.exists())
+    	{
+    		// INSERT ERROR HANDLER FOR REQUESTED FILE DOESNT EXIST!!!!
+    		System.out.println("ERROR: trying to read a non-existant file!");
+    		System.exit(0);
+    	}
+    	else
+    	{
+    		// Sending read data from file to client
+    		System.out.println("Sending data to: " + sendPacket.getPort());
+    		int packNum = 0;
+    		BufferedInputStream in = new BufferedInputStream(new FileInputStream("test.txt"));
+    		
+    		//bytes from file
+    		byte[] fdata = new byte[512];
+    			
+    		//op code and block # + fdata
+		    byte[] pack = new byte[516];
+		
+		    // used for cycling through file
+		    int n;
+		
+		    // a and b used for printing packet number without negatives
+		    int a;
+		    int b;
+		
+		    // data requests are op code 0 3
+		    pack[0] = 0;
+		    pack[1] = 3; 
+		
+		    // while loop cycles through data in file 512 bytes at a time
+		    while ((n = in.read(fdata)) != -1)
+		    {
+		    	//setting bytes for packet number converting from int to 2 bytes
+		    	pack[3] = (byte) (packNum & 0xFF);
+		    	pack[2] = (byte) ((packNum >> 8) & 0xFF); 
+		    	packNum ++;
+		    
+		    	// if end of data from file is null then the remaining part of the file was under 512 bytes
+		    	if (fdata[511] == 0x00)
+		    	{
+		    		// resized array to match the remaining bytes in file (from 512 to < 512)
+		    	    byte[] lastData = resize(fdata);
+		    	    System.out.println(lastData[3]);
+			
+		    		System.out.println("data not 512 bytes");
+		    		System.out.println("Size of this is array is: " + lastData.length);
+			
+		    		// copies file data behind opcode and packet number
+		    		System.arraycopy(lastData, 0, pack, 4, lastData.length);
+			
+		    		// resizes final array from 516 to 4 + remaining data from file
+		    		byte[] lastPack = resize(pack);
+			
+		    		// creates final packet
+		    		sendPacket.setData(lastPack);
+		    		a = lastPack[2];
+		        	b = lastPack[3];
+		        	a &= 0xFF;
+		        	b &= 0xFF;
+		    	}
+		    	else
+		    	{
+		    		System.out.println("\n" + fdata[511] + "\n");
+		    		// if file is sending 512 bytes for data
+		    		System.arraycopy(fdata, 0, pack, 4, fdata.length);
+		    		sendPacket.setData(pack);
+		    	
+		    		a = pack[2];
+		    		b = pack[3];
+		    		a &= 0xFF;
+		    		b &= 0xFF;
+		    	}
+		    	//System.out.println(a + ", " + b);
+		
+		    	for (int i = 0; i < pack.length; i++){
+		    		System.out.print(" " + pack[i]);
+		    	}
+		    	System.out.println( "\n \n" + sendPacket.getData()[1] + " 2nd byte of data being sent");
+		    	try
+				{
+					subServerSocket.send(sendPacket);
+				} 
+				
+				catch (IOException e)
+				{
+					e.printStackTrace();
+					System.exit(0);
+				}
+		    	re(fdata);
+		    	System.out.println("Reaching receive");
+		    	receive();
+		    	System.out.println( "\n \n" + receivePacket.getData()[1] + " 2nd byte of data being sent");
+		    	
+		    }
+		    System.out.println("Leaving Send Data");
+			in.close();
+			}
+		}
+		
 	
 	// resizes arrays to remove null at the end
     public byte[] resize (byte[] data)
@@ -286,6 +403,8 @@ public class SubServer implements Runnable {
     	}
     	return temp;
     }
+    
+    
     public byte[] cutEnd (byte[] data)
     {
     	int i;
@@ -300,6 +419,17 @@ public class SubServer implements Runnable {
     	
     	data = Arrays.copyOf(data, i+1);
     	
+    	return data;
+    }
+    
+    
+    // wipes array replacing all elements with null
+    public byte [] re (byte[] data)
+    {
+    	for (int i = 0; i < data.length; i++)
+	{
+    		data[i] = 0x00;
+    	}
     	return data;
     }
     

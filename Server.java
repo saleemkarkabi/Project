@@ -7,18 +7,21 @@
  * 
  * Server Class
  */
+import java.io.File;
 import java.io.IOException;
 import java.net.*;
 import java.util.Arrays;
 
 
-public class server 
+public class Server 
 {
 	//Instance Variables 
-	private DatagramSocket sendSocket, receiveSocket;
-	private DatagramPacket sendPacket, receivePacket;
+	private DatagramSocket receiveSocket;
+	private DatagramPacket receivePacket;
+
+	private File serverDir;
 	
-	public server()
+	public Server()
 	{
 		try
 		{
@@ -30,6 +33,20 @@ public class server
 		{
 			se.printStackTrace();
 			System.exit(1);
+		}
+		serverDir = new File("Server Directory");
+		// If the directory doesnt already exist, create it
+		if(!serverDir.exists())
+		{
+			try
+			{
+			//If the directory is successfully created
+				serverDir.mkdir();
+			}
+			catch(SecurityException se)
+			{
+				System.exit(1);
+			}
 		}
 	}
 	
@@ -45,8 +62,8 @@ public class server
 	 */
 	public void serverAlgorithm()
 	{
-		while(true)
-		{
+		//while(true)
+		//{
 			//byte arrays created to pack and unpacked data
 			byte[] msg = new byte[50];
 			byte[] data = new byte[4];
@@ -96,7 +113,7 @@ public class server
 				{
 					request = "Read";
 					data[1] = 3;
-					data[3] = 1;
+					//data[3] = 1;
 				}
 				//Write request receive
 				if(msg[1] == 2)
@@ -104,6 +121,12 @@ public class server
 					request = "Write";
 					data[1] = 4;
 				}
+				//Data packet received
+				//if(msg[1] == 3)
+				//{
+					//request = "Data";
+					//data[1] = 4;
+				//}
 
 			}
 			
@@ -113,12 +136,13 @@ public class server
 				System.exit(1);
 			}
 			
-			//Parsing the packet received
+			//Parsing the packet received for valid format
 			System.out.println(request + " Request received");
 			byte[] file = new byte[1];
 			byte[] mode = new byte[1];
 			byte[] msgBytes = new byte[1];
 			int count = 0;
+			
 			for(int i = 2; i < msg.length; i++)
 			{				
 				if(msg[i] == 0)
@@ -135,6 +159,7 @@ public class server
 					}
 				}	
 			}
+		
 			//Printing the information of the received packet
 			String fileName = new String(file);
 			System.out.println("File Name: " + fileName);
@@ -142,67 +167,28 @@ public class server
 			String mode2 = new String(mode);
 			System.out.println("Mode: " + mode2);
 			
-			int len = file.length + mode.length + 4;
+			int len = receivePacket.getData().length;
 			System.out.println("Length: " + len);
 			
-			String infoString = new String(msg,0,fileName.length() + mode2.length() + 4);
+			String infoString = new String(msg,0,len);
 			System.out.println("Information as String: " + infoString);
 
 			msgBytes = Arrays.copyOfRange(msg, 0, len);
 			System.out.println("Information as Bytes: "+ Arrays.toString(msgBytes) + "\n");
 			
 			
-			sendPacket = new DatagramPacket(data,data.length,
-					receivePacket.getAddress(),receivePacket.getPort());
+			System.out.println();
 			
-			//Printing out the information of the packet being sent
-			System.out.println("Server sent packet");
-			System.out.println("To Host: " + sendPacket.getAddress());
-			System.out.println("Destination host port: " + sendPacket.getPort());
-			System.out.print("Response Packet: ");
-			
-			for(int k = 0; k<data.length;k++)
-			{
-				System.out.print(" " + data[k]);
-			}
-			
-			System.out.println("\n");
-			
-			if (!request.equals("Write")){
-			try{
-				sendSocket = new DatagramSocket();
-			}
-			catch(SocketException se)
-			{
-				se.printStackTrace();
-				System.exit(1);
-			}
-			
-		    try {
-		        sendSocket.send(sendPacket);
-		    }
-		    catch(IOException e)
-		    {
-		        e.printStackTrace();
-		        System.exit(1);
-		    }
-		    sendSocket.close();
-			}
-			System.out.println("hit");
-		    if (request.equals("Write"))
-		    {		    	
-		    	System.out.println("hit2 " + receivePacket.getData()[1]);
-		    	Thread t = new Thread (new SubServer(receivePacket.getPort(), receivePacket.getData(),fileName));
-		    	t.start();
-		    }
+			// CREATE THE CLIENT CONNECTION THREAD
+		    Thread t = new Thread (new SubServer(receivePacket.getPort(), receivePacket.getData(),fileName,data));
+		    t.start();
 
-		}
 	}
 	
 	public static void main(String[] args)
 	{
-		server server = new server();
-		byte[] b = new byte[4];
+		Server server = new Server();
+		//byte[] b = new byte[4];
 		//SubServer s = new SubServer(1, b);
 		
 		server.serverAlgorithm();

@@ -20,7 +20,6 @@ public class InputChecker implements Runnable
     
     public void run()
     {
-        System.out.println("Enter k to kill this host");
         while(!kill)
         {
             String input = scanner.next();

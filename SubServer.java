@@ -11,12 +11,13 @@ public class SubServer implements Runnable {
  * IF COPYING PATH FROM 'FILE EXPLORER': -ALL '\' MUST BE CHANGED TO '/'
  *									     -THE PATH SHOULD ALSO END WITH A '/'
  */
-	private static String filePath = "M:/workspace/SYSC3303_CLIENTSERVER/Server Directory/";
+	private static String filePath = "C:/Users/saleemkarkabi/workspace/Project/Server Directory/";
 ////////////////////////////////////////////////////////////////////////////////////////
 	
 	private DatagramSocket subServerSocket;
 	private DatagramPacket receivePacket, sendPacket;
 	
+	private boolean endThread = false;
 	// Size of the Packet being sent back to the client
 	byte[] sendPacketSize;
 	byte[] receivePacketSize;
@@ -31,6 +32,7 @@ public class SubServer implements Runnable {
 	// The file being accessed by the client request
 	private File receivedFile;
 	private String fileName;
+	private boolean errorOut = false;
 	
 	public SubServer ( int target, byte[] d, String fN, byte[] requestOp)
 	{
@@ -83,7 +85,45 @@ public class SubServer implements Runnable {
 		ack = requestOp;
 	}
 		
-	
+	 public byte[] createErrorPacket(byte[] errorCode) throws IllegalArgumentException
+	    {
+	        byte[] opcode = {0, 5};
+	        byte[] zero = {0};
+	        
+	        // Error message
+	        String errMsgStr;
+	        if(errorCode[0] != 0) throw new IllegalArgumentException("First byte in errorCode must be 0");
+	        switch(errorCode[1])
+	        {
+	            case 1 : errMsgStr = "File not found";
+	                     break;
+	            case 2 : errMsgStr = "Access violation";
+	                     break;
+	            case 3 : errMsgStr = "Disk full or allocation exceeded";
+	                     break;
+	            case 4 : errMsgStr = "Illegal TFTP operation";
+	                     break;
+	            case 5 : errMsgStr = "Unknown transfer ID";
+	                     break;
+	            case 6 : errMsgStr = "File already exists";
+	                     break;
+	            case 7 : errMsgStr = "No such user";
+	                     break;
+	            default: errMsgStr = "Not defined";
+	                     break;  
+	        }
+	        byte[] errMsgByt = errMsgStr.getBytes();
+	        
+	        // Concatenate opcode, error code, error message, and zero byte
+	        byte[] data = new byte[opcode.length + errorCode.length + errMsgByt.length + zero.length];
+	        System.arraycopy(opcode, 0, data, 0, opcode.length);
+	        System.arraycopy(errorCode, 0, data, opcode.length, errorCode.length);
+	        System.arraycopy(errMsgByt, 0, data, opcode.length + errorCode.length, errMsgByt.length);
+	        System.arraycopy(zero, 0, data, opcode.length + errorCode.length + errMsgByt.length, zero.length);
+	        
+	        return data;
+	    }
+	 
 	@Override
 	public void run() 
 	{
@@ -95,9 +135,10 @@ public class SubServer implements Runnable {
 			// File creation
 			System.out.println(fileName + " is being created");
 			fileCreation(fileName);
-			
+			if (!errorOut){
 			sendAck(2, true);
 			waitForData();
+			}
 		}
 		// If read request
 		else if(data[1] == 1)
@@ -149,6 +190,19 @@ public class SubServer implements Runnable {
     			System.out.println("Received file created in the server directory.");
     			System.out.println("File: " + receivedFile.toString());
     		}
+    	}else{
+    		sendPacket.setData(createErrorPacket(new byte[] {0, 6}));
+    		errorOut = true;
+    		 try {
+ 				subServerSocket.send(sendPacket);
+ 				System.out.println("File which was requested to write already exist" );
+ 			} catch (IOException e) {
+ 				// TODO Auto-generated catch block
+ 				e.printStackTrace();
+ 			}
+             return;
+    		
+    		
     	}
 	}
 	
@@ -162,7 +216,7 @@ public class SubServer implements Runnable {
     		File file = new File(filePath + f);
     		System.out.println(file.getAbsolutePath().toString());
     		
-    		FileWriter fw = new FileWriter(file.getAbsolutePath(),true);
+    		FileWriter fw = new FileWriter(file.getAbsolutePath(),false);
     		BufferedWriter bw = new BufferedWriter(fw);
     		bw.write(stringData);
     		bw.close();
@@ -279,6 +333,19 @@ public class SubServer implements Runnable {
     	System.arraycopy(f, 0, opNum, 0, 4);
     	opNum[3] = (byte) packetCounter;
     	byte[] writeData = resize(receivePacket.getData());
+    	 if(!receivedFile.canWrite())
+         {
+    		 
+             sendPacket.setData(createErrorPacket(new byte[] {0, 2}));
+             try {
+				subServerSocket.send(sendPacket);
+				System.out.println("LOOK HERE!!!" +receivedFile.canWrite());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+            return;
+         }
     	appendToFile(receivedFile, writeData);
     	sendAck(opNum);
     }
@@ -290,12 +357,13 @@ public class SubServer implements Runnable {
 		// Create the file to be added to the directory
     	File tempFile = new File(readFile);
     	
-    	if(!tempFile.exists())
-    	{
-    		// INSERT ERROR HANDLER FOR REQUESTED FILE DOESNT EXIST!!!!
-    		System.out.println("ERROR: trying to read a non-existant file!");
-    		System.exit(0);
-    	}
+    	if(!tempFile.isFile())
+        {
+            sendPacket.setData(createErrorPacket(new byte[] {0, 1}));
+            subServerSocket.send(sendPacket);
+            return;
+        }
+    	
     	else
     	{
     		// Sending read data from file to client
